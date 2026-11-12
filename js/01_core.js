@@ -36,7 +36,7 @@ function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = 
 
 // ---------- input ----------
 const held = {}, pressed = {};
-let anyPress = false;
+let anyPress = false, zPress = false;
 const KEYMAP = {
   ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R',
   ArrowUp: 'J', KeyW: 'J', Space: 'J', KeyZ: 'J',
@@ -48,6 +48,7 @@ function release(k) { held[k] = false; }
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code];
   if (k) { e.preventDefault(); if (!e.repeat) press(k); }
+  if (e.code === 'KeyZ' && !e.repeat) zPress = true; // только Z, не пробел: шанс на «Z! Z! ZZZ!»
 });
 addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) { e.preventDefault(); release(k); } });
 addEventListener('blur', () => { for (const k in held) held[k] = false; });
