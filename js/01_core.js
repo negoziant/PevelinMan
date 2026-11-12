@@ -529,6 +529,7 @@ function heartIcon(x) {
 function buildDolls() {
   const items = dollList().map(s => { const w = DFW * s.U, h = DFH * s.U; const [c, x] = mkCanvas(w, h); drawDoll(x, s.U, LOOK[s.look], s.pose); outline(x, w, h); return { name: s.name, c, w, h, ax: 15 * s.U, ay: DFH * s.U }; });
   iconList().forEach(([name, w, h, fn]) => { const [c, x] = mkCanvas(w, h); fn(x); items.push({ name, c, w, h, ax: w / 2, ay: h }); });
+  items.push(...extraSprites());
   const MAXW = 1024; let px = 0, py = 0, rowH = 0; const pos = [];
   for (const it of items) { if (px + it.w > MAXW) { px = 0; py += rowH + 2; rowH = 0; } pos.push([px, py]); px += it.w + 2; rowH = Math.max(rowH, it.h); }
   const packH = py + rowH + 2;
@@ -586,7 +587,7 @@ function buildArt() {
   buildDolls();
   let c, x;
   [c, x] = mkCanvas(atlas.width, atlas.height); x.drawImage(atlas, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); atlasW = c;
-  bgA = makeCityBg(); bgB = bgA; bg2 = makeOfficeBg();
+  bgA = makeCityBg(); bgB = bgA; bg2 = makeOfficeBg(); buildDkArt();
   for (let i = 0; i < CASE_COL.length; i++) caseSpr.push([makeCase(i, false), makeCase(i, true)]);
   [c, x] = mkCanvas(16, 6); x.fillStyle = '#e9b616'; x.fillRect(0, 0, 16, 6); x.fillStyle = '#17171f';
   for (let i = -6; i < 16; i += 8) for (let r = 0; r < 6; r++) x.fillRect(i + r, 5 - r, 4, 1);

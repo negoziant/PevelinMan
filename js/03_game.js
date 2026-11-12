@@ -11,7 +11,7 @@ function hurtPlayer(dir, pit, kind) {
   if (P.hp <= 0) { mode = 'dead'; modeT = 0; P.vy = -420; P.vx = dir * 90; stats.deaths++; stopSong(); P.bub = null; return; }
   P.inv = 1.5; P.atk = 0;
   if (pit) { P.x = P.safeX; P.y = P.safeY; P.vx = P.vy = 0; say(P, pick(['ЯМА?!', 'КТО ТАК ВЕРСТАЕТ', 'НУ ВОТ…']), 1.2); }
-  else { P.hurtT = .34; P.vx = dir * 175; P.vy = -280; P.onGround = false; say(P, pick(kind === 'word' ? ['КАКИЕ ГРАНТЫ?!', 'Я НЕ ПРИЛЕПИН!', 'ЭТО НЕ Я!'] : kind === 'folder' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПОДПИСЫВАЛ', 'ОЙ!'] : ['НЕТ!', 'НА ОБЛОЖКУ НЕ НАДО!', 'УБЕРИТЕ!', 'Я ЕГО НЕ ЗНАЮ!']), .9); }
+  else { P.hurtT = .34; P.vx = dir * 175; P.vy = -280; P.onGround = false; say(P, pick(kind === 'ghost' ? ['НЕ НАДО СТИХОВ!', 'Я ВАС НЕ ЗВАЛ!', 'ИЗЫДИ!'] : kind === 'zhal' || kind === 'donos' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПИСАЛ!', 'КАКОЙ НАЦИСТ?!'] : kind === 'word' ? ['КАКИЕ ГРАНТЫ?!', 'Я НЕ ПРИЛЕПИН!', 'ЭТО НЕ Я!'] : kind === 'folder' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПОДПИСЫВАЛ', 'ОЙ!'] : ['НЕТ!', 'НА ОБЛОЖКУ НЕ НАДО!', 'УБЕРИТЕ!', 'Я ЕГО НЕ ЗНАЮ!']), .9); }
 }
 function attackHits() {
   const x0 = P.face > 0 ? P.x - 10 : P.x - 68, x1 = x0 + 78, y0 = P.y - 96, y1 = P.y + 8;
@@ -35,7 +35,9 @@ function attackHits() {
     if (c.open || c.fall || P.atkSet.has(c)) continue;
     if (c.x + 14 > x0 && c.x - 14 < x1 && c.y > y0 && c.y - 30 < y1) { P.atkSet.add(c); openCase(c, P.face); sfx.bonk(); }
   }
-  if (boss && L.boss && !boss.dead && !P.atkSet.has(boss) && boss.x + 40 > x0 && boss.x - 40 < x1 && boss.y > y0 && boss.y - 120 < y1) { P.atkSet.add(boss); meleeBoss(); }
+  if (L.dark) dkAttack(x0, x1, y0, y1);
+  if (boss && L.boss && boss.kind === 'deg') degMelee(x0, x1, y0, y1);
+  else if (boss && L.boss && !boss.dead && !P.atkSet.has(boss) && boss.x + 40 > x0 && boss.x - 40 < x1 && boss.y > y0 && boss.y - 120 < y1) { P.atkSet.add(boss); meleeBoss(); }
 }
 const IDLE_LINES = {
   phone: ['ТАК… РЕЕСТР ОБНОВИЛСЯ', 'ПЯТНИЦА. ПРОВЕРЯЮ РЕЕСТР', 'ФУХ. НИКОГО ИЗ ЗНАКОМЫХ', 'ОПЯТЬ ПОЛОВИНА КОЛЛЕГ', 'ЛАЙКНУЛ БЫ, НО НЕТ'],
@@ -129,7 +131,7 @@ function updateWorld(dt) {
     for (const c of L.checks) if (!c.on && P.x > c.x) { c.on = true; L.lastCheck = c; sfx.ok(); floater('СОХРАНЕНО', c.x, FY - 96, { color: '#3ddc6a', size: 9, t: 1.4 }); if (P.hp < P.maxhp) P.hp++; }
     if (!mirSeen && L.mirX && P.x > L.mirX && P.onGround && !mir) startMir();
     if (!fallCase && L.fallX && P.x > L.fallX) { fallCase = true; const c = mkCase(P.x + 170, -40, 'agent', 2, 1, true); c.fall = true; c.fallen = true; L.cases.push(c); }
-    if (P.x > L.gateX - 50 && P.onGround) { mode = 'gate'; modeT = 0; sfx.gate(); P.atk = 0; mir = null; words = []; }
+    if (P.x > L.gateX - 50 && P.onGround && (!L.gateY || P.y <= L.gateY + 1)) { mode = 'gate'; modeT = 0; sfx.gate(); P.atk = 0; mir = null; words = []; }
     walkerT -= dt;
     if (!walker && walkerT <= 0) { const d = Math.random() < .5 ? 1 : -1; walker = { x: d > 0 ? cam - 30 : cam + W + 30, d, ci: rint(0, 4) }; }
     if (walker) { walker.x += walker.d * 105 * dt; if (walker.x < cam - 60 || walker.x > cam + W + 60) { walker = null; walkerT = rnd(14, 26); } }
@@ -171,7 +173,7 @@ function mirPoked() {
 function updateMir(dt) {
   mirCard = Math.max(0, mirCard - dt);
   if (!mir) {
-    if (!L.boss && (mirSeen || !L.mirX) && mode === 'play') { mirT -= dt; if (mirT <= 0) startMir(); }
+    if (!L.boss && (mirSeen || !L.mirX) && mode === 'play' && !isDark()) { mirT -= dt; if (mirT <= 0) startMir(); }
     return;
   }
   const m = mir; m.t += dt; m.hitCd -= dt; m.shoutA = Math.max(0, m.shoutA - dt);
@@ -228,6 +230,7 @@ const B_BLOCK = ['ПРОВЕРЕНО!', 'ОТКАЗАНО!', 'НЕ ПО ФОРМ
 const COUNTER = ['ЗАЯВЛЕНИЕ ЗАРЕГИСТРИРОВАНО', 'ПЕРЕНАПРАВЛЕНО ПО ПОДВЕДОМСТВЕННОСТИ', 'СРОК РАССМОТРЕНИЯ: 30 ДНЕЙ', 'ОТВЕТ: НАРУШЕНИЙ НЕ ВЫЯВЛЕНО', 'КНОПКА ПРОВЕРЕНА И ИЗЪЯТА'];
 const AGENCIES = ['МВД', 'СК', 'ФСБ', 'ПРОКУРАТУРА', 'РКН', 'МИНЮСТ', 'ГИБДД', 'ФНС'];
 function startBoss() {
+  if (LEVELS[curLevel].bossKind === 'deg') return startDeg();
   L = buildBossLevel(); cam = 0; look = 0;
   parts = []; gibs = []; pickups = []; folders = []; floats = []; fxs = []; blurbs = []; words = []; mir = null;
   Object.assign(P, { x: 70, y: FYB, vx: 0, vy: 0, hp: P.maxhp, face: 1, inv: 0, hurtT: 0, atk: 0, onGround: true, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 70, safeY: FYB });
@@ -262,6 +265,7 @@ function meleeBoss() {
   P.vx = -P.face * 200; P.vy = -160; P.onGround = false;
 }
 function updateBoss(dt) {
+  if (boss && boss.kind === 'deg') return updateDeg(dt);
   const b = boss; if (!b || b.dead) return;
   b.t += dt; b.inv = Math.max(0, b.inv - dt); b.fl = Math.max(0, b.fl - dt); b.pose = Math.max(0, b.pose - dt);
   if (b.bub) { b.bub.t -= dt; if (b.bub.t <= 0) b.bub = null; }
@@ -315,6 +319,7 @@ function startBossDeath() {
   b.hatY = null; b.won = 0; b.left = false;
 }
 function updateBossDeath(dt) {
+  if (boss.kind === 'deg') return updateDegDeath(dt);
   const b = boss; P.vx *= .9; P.vy = Math.min(900, P.vy + GRAV * dt); collide(P, dt);
   if (mir) updateMir(dt);
   if (!b.dead) {
@@ -336,7 +341,7 @@ function updateBossDeath(dt) {
   }
 }
 function drawBoss() {
-  const b = boss; if (!b || !L.boss) return;
+  const b = boss; if (!b || !L.boss || b.kind === 'deg') return;
   for (const f of folders) { const k = clamp(f.y / FYB, 0, 1), w = 6 + k * 16; R(f.x - w / 2, FYB + 1, w, 2, (gameT * 16 | 0) % 2 ? '#ff5b6b' : '#ffd0d6'); }
   const vis = !b.dead || (b.x < W + 80 && b.state === 'dying');
   if (vis) {
@@ -365,6 +370,7 @@ function drawBoss() {
 }
 function drawBossHud() {
   const b = boss; if (!b || !L.boss || !b.started) return;
+  if (b.kind === 'deg') return drawDegHud();
   if (!b.dead) {
     T('ВИТАЛИЙ БОРОДИН', W / 2, 16, { size: 9, color: '#8fdcff', stroke: '#16161d' });
     OV.push(c => { c.fillStyle = '#16161d'; c.fillRect(W / 2 - 152, 26, 304, 12); const sw = 300 / b.max; for (let i = 0; i < b.max; i++) { c.fillStyle = i < b.hp ? (b.phase === 3 ? '#ff5b6b' : b.phase === 2 ? '#ffb35b' : '#8fdcff') : '#2a3350'; c.fillRect(W / 2 - 150 + i * sw, 28, sw - 2, 8); } });
@@ -378,27 +384,30 @@ function drawBossHud() {
 // ---------- scene flow ----------
 function fadeTo(cb) { if (fadeDir === 1) return; fadeDir = 1; fadeCb = cb; }
 // какие уровни открыты, запоминается в браузере
-let unlocked = 1, curLevel = 0;
-try { unlocked = Math.max(1, +localStorage.getItem('pelevin_unlocked') || 1); } catch (e) { }
-function unlockNext() { unlocked = Math.max(unlocked, curLevel + 2); try { localStorage.setItem('pelevin_unlocked', String(unlocked)); } catch (e) { } }
+// OPEN — сколько уровней открыто сразу, без прохождения; passed — докуда игрок дошёл сам
+const OPEN = 2;
+let passed = 1, unlocked = OPEN, curLevel = 0;
+try { passed = Math.max(1, +localStorage.getItem('pelevin_unlocked') || 1); } catch (e) { }
+unlocked = Math.max(OPEN, passed);
+function unlockNext() { passed = Math.max(passed, curLevel + 2); unlocked = Math.max(unlocked, passed); try { localStorage.setItem('pelevin_unlocked', String(passed)); } catch (e) { } }
 function newGame() {
   nameI = 0; NAMES.sort(() => Math.random() - .5);
-  stats = { copies: 0, relocated: 0, cases: 0, casesTotal: 0, deflected: 0, got: 0, best: 0, hits: 0, deaths: 0, time: 0, left: 0, mirPoke: 0 };
+  stats = { ghosts: 0, copies: 0, relocated: 0, cases: 0, casesTotal: 0, deflected: 0, got: 0, best: 0, hits: 0, deaths: 0, time: 0, left: 0, mirPoke: 0 };
   memorial = []; parts = []; gibs = []; floats = []; pickups = []; fxs = []; folders = []; blurbs = []; words = [];
   chain = 0; chainT = 0; pendingCele = false; mir = null; mirSeen = false; mirCard = 0; boss = null; banner = null; letterT = 0; walker = null; walkerT = 10; fallCase = false;
   hitstop = 0; shake = 0; slow = 1; paused = false;
-  L = LEVELS[curLevel].build(); stats.casesTotal = L.casesTotal || 0;
+  L = LEVELS[curLevel].build(); stats.casesTotal = L.casesTotal || 0; dkReset(); lite.seen = false; lite.exiled = {};
   mirT = L.mirX ? 999 : rnd(30, 45);
   if (L.pot) pickups.push({ k: 'money', x: L.pot.x, y: L.pot.y, vx: 0, vy: 0, t: 1, rest: true });
   Object.assign(P, { x: 90, y: FY, vx: 0, vy: 0, face: 1, hp: 5, inv: 0, hurtT: 0, atk: 0, onGround: true, ground: null, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 90, safeY: FY, emoteT: 0 });
   cam = 0; look = 0; mode = 'play'; modeT = 0;
 }
-function startLevel(i) { curLevel = i || 0; newGame(); scene = 'play'; sceneT = 0; playSong('level'); banner = { s: 'ЭТАП ' + (curLevel + 1) + ': ' + LEVELS[curLevel].name, sub: 'НИ ОДНОГО БЛЁРБА!', t: 2.6 }; }
+function startLevel(i) { curLevel = i || 0; newGame(); scene = 'play'; sceneT = 0; playSong(L.song || 'level'); banner = { s: 'ЭТАП ' + (curLevel + 1) + ': ' + LEVELS[curLevel].name, sub: LEVELS[curLevel].tag || 'НИ ОДНОГО БЛЁРБА!', t: 2.6 }; }
 function respawn() {
   if (L.boss) { startBoss(); return; }
   const c = L.lastCheck; P.x = c ? c.x + 20 : 90; P.y = FY; P.vx = P.vy = 0; P.hp = P.maxhp; P.inv = 1.5; P.hurtT = 0; P.onGround = true;
-  blurbs = []; words = []; mir = null; mirT = rnd(25, 40);
-  mode = 'play'; modeT = 0; cam = clamp(P.x - W * .45, 0, L.w - W); playSong('level'); chain = 0;
+  blurbs = []; words = []; mir = null; mirT = rnd(25, 40); if (L.dark) dkReset();
+  mode = 'play'; modeT = 0; cam = clamp(P.x - W * .45, 0, L.w - W); playSong(L.song || 'level'); chain = 0;
 }
 function tickBubbles(dt) { for (const a of L.agents) if (a.bub) { a.bub.t -= dt; if (a.bub.t <= 0) a.bub = null; } if (P.bub) { P.bub.t -= dt; if (P.bub.t <= 0) P.bub = null; } if (boss && boss.bub) { boss.bub.t -= dt; if (boss.bub.t <= 0) boss.bub = null; } }
 function updatePlay(dt) {
@@ -406,13 +415,15 @@ function updatePlay(dt) {
   stats.time += dt; modeT += dt;
   if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
   updateFx(dt);
+  updateDk(dt);
   switch (mode) {
     case 'play':
       updateWorld(dt); if (mode !== 'play') break;
       updatePlayer(dt, true); updateAgents(dt); updateBlurbs(dt); updateMir(dt); updateWords(dt);
       if (L.boss) updateBoss(dt);
       // заявление, отбитое обратно в Бородина
-      if (L.boss && boss && !boss.dead) for (let i = blurbs.length - 1; i >= 0; i--) { const b = blurbs[i]; if (b.back && Math.abs(b.x - boss.x) < 40 && b.y > boss.y - 130 && b.y < boss.y) { blurbs.splice(i, 1); damageBoss('paper'); } }
+      if (L.boss && boss && boss.kind === 'deg') degPaperHits();
+      else if (L.boss && boss && !boss.dead) for (let i = blurbs.length - 1; i >= 0; i--) { const b = blurbs[i]; if (b.back && Math.abs(b.x - boss.x) < 40 && b.y > boss.y - 130 && b.y < boss.y) { blurbs.splice(i, 1); damageBoss('paper'); } }
       break;
     case 'celebrate':
       cele.t += dt; tickBubbles(dt);
@@ -452,16 +463,18 @@ function drawHud() {
     if (cele.kind === 'laugh' && !L.after) for (let i = 0; i < 3; i++) T('ХА', P.x - camR + Math.sin(t * 7 + i * 2) * 50, P.y - 110 - ((t * 60 + i * 26) % 70), { size: 11, color: '#8fdcff', stroke: '#16161d', rot: Math.sin(t * 5 + i) * .3 });
   }
   if (mode === 'dead' && modeT > 1) { const d = DEATH[P.lastHit] || DEATH.misc; T(d[0], W / 2, 150, { size: 26, color: '#ff5b6b', stroke: '#16161d', sw: 8 }); T(d[1], W / 2, 190, { size: 9, color: '#fff', stroke: '#16161d' }); if (modeT > 1.5 && (gameT * 2 | 0) % 2) T(TOUCH ? 'ТАПНИ' : 'ЛЮБАЯ КНОПКА', W / 2, 226, { size: 10, color: '#ffe36b', stroke: '#16161d' }); }
-  if (boss && L.boss && boss.won && mode === 'bossdeath') { T('ПОЛУЧЕНО: ЧИСТАЯ ОБЛОЖКА', W / 2, 96, { size: 20, color: '#ffe36b', stroke: '#16161d', sw: 7 }); T('(ни одного блёрба)', W / 2, 128, { size: 12, color: '#fff', stroke: '#16161d', sw: 5 }); }
+  drawDkHud();
+  if (boss && L.boss && boss.won && mode === 'bossdeath') { const pz = boss.prize || ['ПОЛУЧЕНО: ЧИСТАЯ ОБЛОЖКА', '(ни одного блёрба)']; T(pz[0], W / 2, 96, { size: 20, color: '#ffe36b', stroke: '#16161d', sw: 7 }); T(pz[1], W / 2, 128, { size: 12, color: '#fff', stroke: '#16161d', sw: 5 }); }
 }
 function drawPlay() {
   const cx = Math.round(cam); camR = cx;
-  if (L.boss) g.drawImage(bg2, 0, 0);
-  else { const off = -(Math.floor(cx * .45) % W); for (let x = off; x < W; x += W) g.drawImage(bgA, x, 0); }
+  if (L.boss) g.drawImage(L.bg || bg2, 0, 0);
+  else { const bgI = L.bgA || bgA, off = -(Math.floor(cx * .45) % W); for (let x = off; x < W; x += W) g.drawImage(bgI, x, 0); }
   g.save(); g.translate(-cx, 0);
   if (!L.boss) {
     for (const d of L.deco) if (inView(d.x)) drawCase(d, true);
     if (walker) { g.globalAlpha = .6; const st = (gameT * 14 | 0) % 2; R(walker.x - 6, FY - 6 - (st ? 2 : 0), 3, 6 + (st ? 2 : 0), '#16161d'); R(walker.x + 4, FY - 6 - (st ? 0 : 2), 3, 6 + (st ? 0 : 2), '#16161d'); g.globalAlpha = 1; drawCase({ x: walker.x, y: FY - 6 - st, ci: walker.ci, s: .8, open: false, bump: 0 }, true); }
+    if (L.theme === 'dk') drawDkWorld();
     for (const s of L.signs) if (inView(s.x + s.w / 2, 200)) drawSign(s);
     for (const c of L.checks) if (inView(c.x)) drawCheck(c);
     if (inView(L.gateX, 140)) drawGate();
@@ -481,6 +494,7 @@ function drawPlay() {
   for (const q of gibs) if (!q.rest && inView(q.x)) drawGib(q);
   for (const p of parts) R(p.x, p.y, p.s, p.s, p.c);
   for (const f of fxs) { const k = f.t / f.max, r = 8 + k * 26; g.strokeStyle = k < .5 ? '#fff' : '#ffe36b'; g.lineWidth = 3; g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + .3; g.moveTo(f.x + Math.cos(a) * r * .5, f.y + Math.sin(a) * r * .5); g.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r); } g.stroke(); }
+  if (L.dark) drawDkTop(cx);
   drawBlurbs();
   g.restore();
   drawWords();
@@ -523,13 +537,14 @@ function drawSelect() {
     T('ЭТАП ' + (i + 1), x + w / 2, y + 18, { size: 9, color: open ? '#39e0d0' : '#566a92' });
     if (lv) {
       wrap(lv.name, 15).forEach((ln, j) => T(ln, x + w / 2, y + 44 + j * 16, { size: 10, color: open ? '#fff' : '#566a92' }));
-      if (open) { spr('a' + (i % 4) + '_give', x + 24, y + h - 4, false, { sx: .6 }); T(i < unlocked - 1 ? 'ПРОЙДЕН' : (lv.sub || ''), x + w / 2 + 14, y + h - 22, { size: 7, color: i < unlocked - 1 ? '#3ddc6a' : '#ffd0e8' }); if (lv.author) T('автор: ' + lv.author, x + w / 2 + 14, y + h - 10, { size: 6, color: '#8f9ad0' }); }
+      if (open) { spr('a' + (i % 4) + '_give', x + 24, y + h - 4, false, { sx: .6 }); T(i < passed - 1 ? 'ПРОЙДЕН' : (lv.sub || ''), x + w / 2 + 14, y + h - 22, { size: 7, color: i < passed - 1 ? '#3ddc6a' : '#ffd0e8' }); if (lv.author) T('автор: ' + lv.author, x + w / 2 + 14, y + h - 10, { size: 6, color: '#8f9ad0' }); }
       else { drawCase({ x: x + 26, y: y + h - 8, ci: 4, scale: .8, open: false, bump: 0 }); T('ЗАКРЫТ', x + w / 2 + 14, y + h - 26, { size: 8, color: '#ff6b6b' }); T('пройди этап ' + i, x + w / 2 + 14, y + h - 12, { size: 6, color: '#566a92' }); }
     } else { T('СКОРО', x + w / 2, y + 58, { size: 12, color: '#566a92' }); T('место для', x + w / 2, y + 86, { size: 7, color: '#3d4d6e' }); T('твоего уровня', x + w / 2, y + 100, { size: 7, color: '#3d4d6e' }); }
   }
   T(TOUCH ? 'тапни по уровню' : 'стрелки — выбрать, ENTER — играть', W / 2, H - 20, { size: 8, color: '#8f9ad0' });
 }
 function drawBossIntro() {
+  if (LEVELS[curLevel].bossKind === 'deg') return drawDegIntro();
   const t = sceneT;
   R(0, 0, W, H, '#0a1a12'); for (let i = 0; i < 12; i++) { const y = ((i * 44 + t * 240) % (H + 44)) - 44; R(0, y, W, 16, i % 2 ? '#14301f' : '#0f2418'); }
   R(0, 150, W, 150, '#05100a'); R(0, 150, W, 3, '#8fdcff'); R(0, 297, W, 3, '#8fdcff');
@@ -547,11 +562,14 @@ let credits = null;
 function drawEnding() {
   const t = sceneT; R(0, 0, W, H, '#07060d');
   if (!credits) {
-    if (t > .6) T('ОБЛОЖКА ЧИСТА.', W / 2, 66, { size: 24, color: '#fff' });
-    if (t > 2.6) T('Надолго ли?', W / 2, 102, { size: 13, color: '#8fdcff' });
+    const lv = LEVELS[curLevel] || {};
+    if (t > .6) T(lv.endA || 'ОБЛОЖКА ЧИСТА.', W / 2, 66, { size: 24, color: '#fff' });
+    if (t > 2.6) T(lv.endB || 'Надолго ли?', W / 2, 102, { size: 13, color: '#8fdcff' });
     const mm = (stats.time / 60 | 0) + ':' + String(stats.time % 60 | 0).padStart(2, '0');
     const rows = [['ТИРАЖ', stats.copies], ['ЧЕМОДАНОВ', stats.cases + '/' + stats.casesTotal], ['БЛЁРБОВ ОТБИТО', stats.deflected], ['БЛЁРБОВ НА ОБЛОЖКЕ', stats.got], ['РЕЛОЦИРОВАНО', stats.relocated + (stats.left ? ' (' + stats.left + ' ОСТАЛИСЬ)' : '')], ['ЛУЧШЕЕ КОМБО', 'x' + stats.best], ['ВРЕМЯ', mm]];
-    rows.forEach((r, i) => { if (t > 4.4 + i * .45) { T(r[0], W / 2 - 14, 140 + i * 23, { size: 10, color: '#8f9ad0', align: 'right' }); T(String(r[1]), W / 2 + 14, 140 + i * 23, { size: 10, color: '#ffe36b', align: 'left' }); } });
+    if (lv.bossKind === 'deg') rows.splice(5, 0, ['ПРИЗРАКОВ ИЗГНАНО', stats.ghosts]);
+    const rh = rows.length > 7 ? 20 : 23;
+    rows.forEach((r, i) => { if (t > 4.4 + i * .45) { T(r[0], W / 2 - 14, 140 + i * rh, { size: 10, color: '#8f9ad0', align: 'right' }); T(String(r[1]), W / 2 + 14, 140 + i * rh, { size: 10, color: '#ffe36b', align: 'left' }); } });
     if (t > 8) T('РАНГ: ' + rankOf(), W / 2, 316, { size: 13, color: '#3ddc6a', stroke: '#16161d', sw: 5 });
     spr((t / .22 | 0) % 2 ? 'p_dance2' : 'p_dance1', 90, 430 - Math.abs(Math.sin(t * 14.3)) * 5, (t / .88 | 0) % 2 === 1);
   } else {
@@ -569,7 +587,8 @@ function makeCredits() {
   memorial.forEach(m => add(m[0].toUpperCase(), m[1]));
   if (!memorial.length) add('НИКТО', 'все остались. с блёрбами');
   y += 30; add('В РОЛЯХ', null, { size: 14, gap: 34 });
-  add('АЛЕКСАНДР ПЕЛЕВИН', 'сам'); add('ИНОАГЕНТЫ', 'собирательные образы'); add('АНАСТАСИЯ МИРОНОВА', 'с мегафоном'); add('ВИТАЛИЙ БОРОДИН', 'на проверке'); add('ЧЕМОДАНЫ', 'релокация'); add('КНИГА', 'твёрдый переплёт');
+  const cast = (LEVELS[curLevel] || {}).cast || [['АЛЕКСАНДР ПЕЛЕВИН', 'сам'], ['ИНОАГЕНТЫ', 'собирательные образы'], ['АНАСТАСИЯ МИРОНОВА', 'с мегафоном'], ['ВИТАЛИЙ БОРОДИН', 'на проверке'], ['ЧЕМОДАНЫ', 'релокация'], ['КНИГА', 'твёрдый переплёт']];
+  cast.forEach(c => add(c[0], c[1]));
   y += 30; add('ВСЕ ПЕРСОНАЖИ — КАРИКАТУРЫ', null, { size: 9, color: '#bff7ee', gap: 18 }); add('СОВПАДЕНИЯ С РЕАЛЬНОСТЬЮ —', null, { size: 9, color: '#bff7ee', gap: 18 }); add('НА СОВЕСТИ РЕАЛЬНОСТИ', null, { size: 9, color: '#bff7ee', gap: 26 }); add('(блёрбов в игре нет)', null, { size: 8, color: '#8fdcff', gap: 60 });
   add('ФОРК «ГАЛИ МЕН»', null, { size: 10, color: '#ffd0e8', gap: 40 });
   return { rows, h: y, t0: sceneT, done: false };
@@ -618,7 +637,7 @@ function step(dt) {
   if (zPress) { zPress = false; if (scene === 'play' && !paused && !zz && zzCd <= 0 && Math.random() < .25) { zz = { t: 0, rot: [rnd(-.2, .2), rnd(-.2, .2), rnd(-.12, .12)] }; zzCd = 2; shake = Math.max(shake, 6); sfx.shout(); } }
   const go = hit('S') || hit('J') || hit('A') || hit('T');
   switch (scene) {
-    case 'title': if (sceneT > .4 && go && !fadeDir) { sfx.ok(); fadeTo(() => { scene = 'select'; sceneT = 0; selI = Math.min(unlocked, LEVELS.length) - 1; }); } break;
+    case 'title': if (sceneT > .4 && go && !fadeDir) { sfx.ok(); fadeTo(() => { scene = 'select'; sceneT = 0; selI = Math.min(passed, LEVELS.length) - 1; }); } break;
     case 'select': {
       const n = slotCount(); let ok = hit('S') || hit('A');
       if (hit('L')) { selI = (selI + n - 1) % n; sfx.select(); } if (hit('R')) { selI = (selI + 1) % n; sfx.select(); }
@@ -665,7 +684,7 @@ window.__dbg = {
   get s() { return { scene, mode, x: P.x, y: P.y, hp: P.hp, relocated: stats && stats.relocated, got: stats && stats.got, boss: boss && { hp: boss.hp, state: boss.state, phase: boss.phase, x: boss.x }, mir: mir && { st: mir.st, x: mir.x }, cam, agents: L && L.agents.length, blurbs: blurbs.length, words: words.length, chain, fade }; },
   warp(x, y) { P.x = x; P.y = y === undefined ? FY : y; P.vx = P.vy = 0; cam = clamp(x - 360, 0, L.w - W); },
   god(v) { P.maxhp = v ? 99 : 5; P.hp = P.maxhp; },
-  start() { startLevel(0); }, mir() { startMir(); }, cele(k) { cele.n = 4; startCelebrate(); if (k) cele.kind = k; }, idle(k) { P.idleT = 4; P.idleAnim = k; P.idleA = 0; }, boss() { startBoss(); }, bosshp(n) { boss.hp = n; }, ending() { startEnding(); }, intro() { startBossIntro(); },
+  start(i) { startLevel(i || 0); }, deg() { curLevel = 1; startDeg(); }, lite: () => lite, ghosts: () => ghosts, darkAt(t) { lite.t = t; }, mir() { startMir(); }, cele(k) { cele.n = 4; startCelebrate(); if (k) cele.kind = k; }, idle(k) { P.idleT = 4; P.idleAnim = k; P.idleA = 0; }, boss() { startBoss(); }, bosshp(n) { boss.hp = n; }, ending() { startEnding(); }, intro() { startBossIntro(); },
   bossObj: () => boss, L: () => L, P, F, stats: () => stats, atlas: () => atlas,
   blurb() { const a = L.agents.filter(r => !r.dead).sort((p, q) => Math.abs(p.x - P.x) - Math.abs(q.x - P.x))[0]; if (a) throwBlurb(a); }
 };

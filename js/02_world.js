@@ -141,7 +141,7 @@ function buildLevel1() {
   return k.done();
 }
 // Список уровней. Новый уровень добавляется строкой LEVELS.push({...}) в своём файле в js/levels/.
-const LEVELS = [{ name: 'КНИЖНАЯ ЯРМАРКА', sub: 'босс: Бородин', build: buildLevel1, boss: true }];
+const LEVELS = [{ name: 'КНИЖНАЯ ЯРМАРКА', sub: 'босс: Бородин', build: buildLevel1, boss: true, bossKind: 'bor' }];
 function buildBossLevel() {
   const l = { w: W, fy: FYB, solids: [], agents: [], cases: [], signs: [], zaps: [], spikes: [], movers: [], deco: [], checks: [], pits: [], boss: true, name: 'ПРИЁМНАЯ' };
   l.solids.push({ x: -200, y: FYB, w: W + 400, h: 120, k: 'f', hid: true }, { x: -60, y: -300, w: 68, h: 800, k: 'b', hid: true }, { x: W - 8, y: -300, w: 68, h: 800, k: 'b', hid: true });
@@ -243,8 +243,8 @@ function updateBlurbs(dt) {
     const s = solidAt(b.x, b.y); if (s && s.k !== 'p') kill = true;
     if (!b.back && !kill && Math.abs(b.x - P.x) < 15 && b.y > P.y - P.h - 2 && b.y < P.y + 2 && mode === 'play' && P.inv <= 0) {
       kill = true; if (!b.paper) stats.got++;
-      floater(b.paper ? 'ЗАЯВЛЕНИЕ НА ВАС' : b.q + ' — ' + b.from.name, P.x, P.y - 110, { color: b.paper ? '#8fdcff' : '#ffe36b', size: 8, t: 2.2, vy: -18 });
-      hurtPlayer(sign(b.vx), false, b.paper ? 'folder' : 'blurb');
+      floater(b.paper ? (b.hitTxt || 'ЗАЯВЛЕНИЕ НА ВАС') : b.q + ' — ' + b.from.name, P.x, P.y - 110, { color: b.paper ? '#8fdcff' : '#ffe36b', size: 8, t: 2.2, vy: -18 });
+      hurtPlayer(sign(b.vx), false, b.kind || (b.paper ? 'folder' : 'blurb'));
     }
     if (b.back && !kill) for (const a of L.agents) if (!a.dead && a.ko <= 0 && Math.abs(a.x - b.x) < 16 * a.scale && b.y > a.y - 74 * a.scale && b.y < a.y) { kill = true; floater('ВОЗВРАЩЁН АВТОРУ', a.x, a.y - 96, { color: '#7fe08a', size: 8, t: 1.4 }); hitAgent(a, sign(b.vx)); break; }
     if (kill) { if (b.y < H) confetti(b.x, b.y, 2, 60); blurbs.splice(i, 1); }
@@ -281,11 +281,11 @@ function startCelebrate() {
   else { sfx.laugh(5, 600); playSong('dance'); }
   let aweN = 0;
   for (const a of L.agents) if (!a.dead && inView(a.x)) { a.awe = true; a.vx = 0; if (aweN < 2 && Math.random() < .6) { aweN++; say(a, pick(AWE), 2.4); } else a.bub = null; }
-  if (boss && L.boss && !boss.dead) say(boss, 'ТАНЦЫ В ПРИЁМНОЙ? ЗАПИСЫВАЮ', 2.4);
+  if (boss && L.boss && !boss.dead && boss.kind !== 'deg') say(boss, 'ТАНЦЫ В ПРИЁМНОЙ? ЗАПИСЫВАЮ', 2.4);
 }
 function endCelebrate() {
   mode = 'play'; for (const a of L.agents) a.awe = false;
-  playSong(L.boss ? 'boss' : 'level'); P.idleT = 0;
+  playSong(L.boss ? 'boss' : (L.song || 'level')); P.idleT = 0;
 }
 
 // ---------- suitcases ----------
@@ -341,7 +341,7 @@ function updateAgents(dt) {
         else a.vx = dir * 150;
         if (dist > 360) { a.state = 'idle'; a.vx = 0; }
       } else { a.vx = 0; a.face = sign(dx); }
-      if (a.state === 'corner' && mode === 'play' && dist < 330 && near) { a.throwT -= dt; if (a.throwT <= 0 && blurbs.length < 3) { a.throwT = rnd(2.2, 3.2); throwBlurb(a); } }
+      if (a.state === 'corner' && mode === 'play' && !isDark() && dist < 330 && near) { a.throwT -= dt; if (a.throwT <= 0 && blurbs.length < 3) { a.throwT = rnd(2.2, 3.2); throwBlurb(a); } }
     } else if (a.kind === 'give') {
       // идёт к Пелевину, чтобы вручить блёрб лично
       a.face = sign(dx);
@@ -357,7 +357,7 @@ function updateAgents(dt) {
     } else {
       a.face = sign(dx); a.vx = 0;
       a.state = (dist < 150 && near) ? 'scared' : 'idle';
-      if (mode === 'play' && a.said && dist < 340 && dist > 60 && near && !a.awe) {
+      if (mode === 'play' && !isDark() && a.said && dist < 340 && dist > 60 && near && !a.awe) {
         a.throwT -= dt;
         if (a.throwT <= 0 && blurbs.length < 3) { a.throwT = rnd(2.4, 3.6); throwBlurb(a); }
       }
@@ -382,6 +382,23 @@ function hitAgent(a, dir) {
 function drawSolid(s) {
   if (s.hid) return;
   const x = Math.round(s.x), y = Math.round(s.y), w = Math.round(s.w);
+  if (L.theme === 'dk' && s.k !== 'p') {
+    if (s.k === 'f') {
+      g.fillStyle = pats.panel; g.fillRect(x, y + 8, w, H - y);
+      R(x, y, w, 2, '#c9a24a'); R(x, y + 2, w, 7, '#5a1630'); for (let i = 6; i < w; i += 16) R(x + i, y + 4, 3, 3, '#c9a24a');
+      R(x, y + 9, w, 2, '#2a1a10'); R(x, y, 3, H - y, '#2a1a10'); R(x + w - 3, y, 3, H - y, '#2a1a10');
+    } else if (s.st === 'bal') {
+      for (let i = 20; i < w; i += 140) { R(x + i - 1, y + s.h, 10, FY - y - s.h, '#16161d'); R(x + i, y + s.h, 8, FY - y - s.h, '#d8ccaa'); }
+      R(x, y, w, s.h, '#16161d'); R(x + 1, y + 1, w - 2, 5, '#d8caa4'); R(x + 1, y + 6, w - 2, s.h - 7, '#6a4628');
+      for (let i = 8; i < w - 6; i += 14) R(x + i, y + 8, 5, s.h - 11, '#c9b88a');
+    } else {
+      // ящик с реквизитом
+      R(x, y, w, s.h, '#16161d'); R(x + 2, y + 2, w - 4, s.h - 4, '#8a6440');
+      for (let yy = 10; yy < s.h - 2; yy += 10) R(x + 2, y + yy, w - 4, 1, '#6a4a2a');
+      R(x + 2, y + 2, w - 4, 2, '#a88050'); R(x + 4, y + 4, 3, s.h - 8, '#6a4a2a'); R(x + w - 7, y + 4, 3, s.h - 8, '#6a4a2a');
+    }
+    return;
+  }
   if (s.k === 'f') {
     g.fillStyle = pats.panel; g.fillRect(x, y + 8, w, H - y);
     R(x, y, w, 2, '#e8c890'); R(x, y + 2, w, 6, '#a3111f'); R(x, y + 3, w, 1, '#d84a4a'); R(x, y + 8, w, 2, '#2a1a10');
@@ -428,6 +445,7 @@ function drawCheck(c) {
   R(c.x - 11, L.fy - 76, 22, 20, '#141a2c'); R(c.x - 9, L.fy - 74, 18, 16, c.on ? '#3ddc6a' : '#7a1c28'); R(c.x - 6, L.fy - 71, 12, 10, c.on ? '#c9ffd6' : '#c2444f');
 }
 function drawGate() {
+  if (L.theme === 'dk') return drawDkGate();
   const x = L.gateX, o = Math.round(L.gate * 118);
   R(x - 12, FY - 150, 94, 150, '#141a2c'); R(x - 8, FY - 146, 86, 146, '#3d4a3a'); R(x - 8, FY - 146, 86, 3, '#8fb07f');
   R(x, FY - 122, 70, 122, '#0b0712');
