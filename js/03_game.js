@@ -161,6 +161,7 @@ function startMir() {
     stop = clamp(stop, cam + 50, cam + W - 50);
   }
   mir = { x: L.boss ? (side > 0 ? W + 60 : -60) : (side > 0 ? cam + W + 60 : cam - 60), y: L.fy, side, stop, st: 'in', t: 0, face: -side, bub: null, wT: .5, life: L.boss ? 9 : 6.5, hitCd: 0, shoutA: 0 };
+  if (L.boss) mir.life = 6.5;
   sfx.shout(); say(mir, 'ПРИЛЕПИНСКИЕ ГРАНТЫ!!!', 2.2);
   if (!mirSeen) { mirSeen = true; mirCard = 2.8; }
   if (boss && L.boss && !boss.dead) setTimeout(() => { if (boss && !boss.dead && mir) say(boss, 'ГРАНТЫ? ПРОШУ ПРОВЕРИТЬ ГРАНТЫ!', 2.4); }, 1400);
@@ -184,9 +185,9 @@ function updateMir(dt) {
   } else if (m.st === 'shout') {
     m.face = sign(P.x - m.x); m.wT -= dt;
     if (m.wT <= 0) {
-      m.wT = L.boss ? .9 : 1.05;
+      m.wT = L.boss ? 1.35 : 1.05;
       const low = Math.random() < .5;
-      words.push({ x: m.x + m.face * 34, y: m.y - (low ? 14 : 70), vx: m.face * (L.boss ? 270 : 240), s: pick(MIR_WORDS), t: 0 });
+      words.push({ x: m.x + m.face * 34, y: m.y - (low ? 14 : 70), vx: m.face * (L.boss ? 215 : 240), s: pick(MIR_WORDS), t: 0 });
       m.shoutA = .3; sfx.shout();
       if (!m.bub && Math.random() < .55) say(m, pick(MIR_SHOUT), 1.6);
     }
@@ -254,7 +255,7 @@ function damageBoss(by) {
   floater(by === 'paper' ? pick(['ВОЗВРАЩЕНО БЕЗ РАССМОТРЕНИЯ', 'НЕ ПО АДРЕСУ', 'ВАМ ЖЕ И ОТВЕТ']) : pick(['ОТКАЗ!', 'НЕ ПРИНЯТО!', 'ИГНОР!']), b.x, b.y - 150, { color: '#ffe36b', size: 10, t: .9, vy: -40 });
   if (b.hp <= 0) { startBossDeath(); return true; }
   const np = b.hp <= 6 ? 3 : b.hp <= 12 ? 2 : 1;
-  if (np !== b.phase) { b.phase = np; if (np === 3 && !b.mirDone) { b.mirDone = true; startMir(); } }
+  if (np !== b.phase) { b.phase = np; if (np === 3 && !b.mirDone) { b.mirDone = true; startMir(); pickups.push({ k: 'heart', x: clamp(P.x + rnd(-120, 120), 60, W - 60), y: 40, vx: 0, vy: 0, t: 0 }); floater('ХОРОШАЯ РЕЦЕНЗИЯ ЛЕТИТ!', W / 2, 90, { scr: true, color: '#ff8a94', size: 9, t: 1.8, vy: -10 }); } }
   if (!b.bub || Math.random() < .5) say(b, pick(B_HURT), 1.5);
   return true;
 }
@@ -276,13 +277,13 @@ function updateBoss(dt) {
       if (b.t > 1.1 && !b.bub) { if (b.line >= B_GREET.length) { bossBegin(); break; } say(b, B_GREET[b.line++], 2.4); b.t = -1.4; sfx.blip2(); }
       break;
     case 'throw': {
-      const cnt = ph === 1 ? 3 : ph === 2 ? 4 : 5, gap = ph === 1 ? .85 : ph === 2 ? .7 : .55;
+      const calm = mir ? 1.5 : 1, cnt = ph === 1 ? 3 : ph === 2 ? 4 : mir ? 3 : 5, gap = (ph === 1 ? .85 : ph === 2 ? .7 : .55) * calm;
       if (b.n < cnt && b.t > gap) { b.t = 0; b.n++; bossPaper(); if (!b.bub && Math.random() < .5) say(b, pick(B_THROW), 1.1); }
       if (b.n >= cnt && b.t > 1) { b.state = 'demand'; b.t = 0; b.n = 0; say(b, pick(B_DEMAND), 2.4); sfx.shout(); }
       break;
     }
     case 'demand': {
-      const dur = ph === 1 ? 2.4 : 3, gap = ph === 1 ? .34 : ph === 2 ? .25 : .22;
+      const dur = ph === 1 ? 2.4 : mir ? 2.2 : 3, gap = (ph === 1 ? .34 : ph === 2 ? .25 : .22) * (mir ? 1.6 : 1);
       if (b.t > .9) { b.n += dt; if (b.n > gap) { b.n = 0; const x = Math.random() < .65 ? clamp(P.x + rnd(-150, 150), 26, W - 26) : rnd(26, W - 26); folders.push({ x, y: -24, vy: rnd(250, 320), lab: pick(AGENCIES) }); } }
       if (b.t > .9 + dur) { b.state = 'write'; b.t = 0; say(b, pick(B_WRITE), 2); }
       break;
