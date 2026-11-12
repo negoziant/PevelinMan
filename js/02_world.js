@@ -42,7 +42,12 @@ const AWE = ['он танцует…', 'без единого блёрба', 'э
 function mkAgent(x, y, kind, line, o) {
   o = o || {};
   const nm = NAMES[nameI++ % NAMES.length];
-  const v = FEMALE(nm[0]) || FEMALE(nm[1]) ? 1 : pick([0, 2, 3]);
+  const v = o.robo ? o.robo - 1 : FEMALE(nm[0]) || FEMALE(nm[1]) ? 1 : pick([0, 2, 3]);
+  if (o.robo) { nameI--; return Object.assign(mkAgentRaw(x, y, kind, line, o, v), { robo: true, title: 'Робонашист', name: 'Т-' + rint(100, 999), city: '', epi: '', range: o.range || 120 }); }
+  return mkAgentRaw(x, y, kind, line, o, v, nm);
+}
+function mkAgentRaw(x, y, kind, line, o, v, nm) {
+  nm = nm || ['', '', '', ''];
   return { x, y, w: 24, h: 74, vx: 0, vy: 0, kind, line, scale: o.scale || 1, v, title: nm[0], name: nm[1], city: nm[2], epi: nm[3], face: -1, state: 'idle', t: rnd(3), said: false, said2: false, ko: 0, koDir: 1, dead: false, bub: null, onGround: true, ground: null, sign: o.sign, awe: false, hitWall: false, throwT: rnd(1.2, 2.6), throwA: 0 };
 }
 function mkCase(x, y, content, ci, scale, main) { return { x, y, content, ci: ci || 0, scale: scale || 1, main: !!main, open: false, vx: 0, vy: 0, fall: false, fallen: false, t: 0, bump: 0 }; }
@@ -233,7 +238,7 @@ function throwBlurb(a) {
   const x = a.x + a.face * 14, y = a.y - 58 * a.scale, tx = P.x, ty = P.y - 44;
   const dx = tx - x, vx = clamp(Math.abs(dx) / .95, 170, 300) * sign(dx), T = Math.abs(dx / vx), gr = 420;
   const vy = clamp((ty - y - .5 * gr * T * T) / Math.max(.3, T), -420, 160);
-  blurbs.push({ x, y, vx, vy, g: gr, q: pick(QUOTES), from: a, back: false, t: 0, rot: 0 });
+  blurbs.push({ x, y, vx, vy, g: gr, q: pick(a.robo ? NEURO : QUOTES), from: a, back: false, t: 0, rot: 0 });
   a.throwA = .35; sfx.paper();
 }
 function updateBlurbs(dt) {
@@ -253,7 +258,7 @@ function updateBlurbs(dt) {
 function drawBlurbs() {
   for (const b of blurbs) {
     if (!inView(b.x)) continue;
-    spr(b.paper ? 'sheet' : 'blurbp', b.x, b.y + 8, false, { rot: b.paper ? b.rot : Math.sin(b.rot) * .5 });
+    spr(b.spr || (b.paper ? 'sheet' : 'blurbp'), b.x, b.y + (b.spr ? 0 : 8), false, { rot: b.paper ? b.rot : Math.sin(b.rot) * .5 });
     if (!b.back) T(b.q, b.x - camR, b.y - 14, { size: 7, color: '#ffe36b', stroke: '#16161d' });
   }
 }
@@ -262,11 +267,12 @@ function drawBlurbs() {
 function relocate(a, dir) {
   a.dead = true; stats.relocated++;
   const cx = a.x, cy = a.y - 40 * a.scale;
-  confetti(cx, cy, 10, 160); burst(cx, cy, 16, ['#fff', '#ffe36b', '#cfd8e6'], 200, .5, 300);
+  if (a.robo) burst(cx, cy, 26, ['#ffe36b', '#ff9a3a', '#cfd8e6', '#39e0d0'], 260, .6, 500); else confetti(cx, cy, 10, 160);
+  burst(cx, cy, 16, ['#fff', '#ffe36b', '#cfd8e6'], 200, .5, 300);
   shake = Math.max(shake, 5); sfx.whoosh();
   pickups.push({ k: 'copy', x: cx, y: cy, vx: rnd(-40, 40), vy: -330, t: 0, rest: false });
-  memorial.push([fullName(a), 'уехал' + (isFem(a) ? 'а' : '') + ' в ' + a.city + ': ' + a.epi]);
-  floater('РЕЛОКАЦИЯ: ' + a.city.toUpperCase(), cx, cy - 46, { color: '#8fdcff', size: 8, t: 1.6, vy: -22 });
+  if (!a.robo) memorial.push([fullName(a), 'уехал' + (isFem(a) ? 'а' : '') + ' в ' + a.city + ': ' + a.epi]);
+  floater(a.robo ? 'ОТКЛЮЧЁН: НА ПЕРЕОБУЧЕНИЕ' : 'РЕЛОКАЦИЯ: ' + a.city.toUpperCase(), cx, cy - 46, { color: '#8fdcff', size: 8, t: 1.6, vy: -22 });
   chain++; chainT = 3.6; stats.best = Math.max(stats.best, chain);
   if (chain % 4 === 0) { pendingCele = true; cele.n = chain; }
   if (!P.bub && Math.random() < .45) say(P, pick(['СЧАСТЛИВОГО ПУТИ', 'ПИШИТЕ. НО НЕ МНЕ', 'НЕ НАДО БЛЁРБОВ', 'ОБЛОЖКА ЧИСТАЯ', 'Я ВАС НЕ ЗНАЮ']), 1.2);
@@ -281,11 +287,11 @@ function startCelebrate() {
   else { sfx.laugh(5, 600); playSong('dance'); }
   let aweN = 0;
   for (const a of L.agents) if (!a.dead && inView(a.x)) { a.awe = true; a.vx = 0; if (aweN < 2 && Math.random() < .6) { aweN++; say(a, pick(AWE), 2.4); } else a.bub = null; }
-  if (boss && L.boss && !boss.dead && boss.kind !== 'deg') say(boss, 'ТАНЦЫ В ПРИЁМНОЙ? ЗАПИСЫВАЮ', 2.4);
+  if (boss && L.boss && !boss.dead && !boss.kind) say(boss, 'ТАНЦЫ В ПРИЁМНОЙ? ЗАПИСЫВАЮ', 2.4);
 }
 function endCelebrate() {
   mode = 'play'; for (const a of L.agents) a.awe = false;
-  playSong(L.boss ? 'boss' : (L.song || 'level')); P.idleT = 0;
+  playSong(L.boss ? (L.song === 'robot' ? 'robot' : 'boss') : (L.song || 'level')); P.idleT = 0;
 }
 
 // ---------- suitcases ----------
@@ -331,7 +337,8 @@ function updateAgents(dt) {
     if (!inView(a.x, 260)) continue;
     const dx = P.x - a.x, dist = Math.abs(dx), near = Math.abs(P.y - a.y) < 130;
     if (!a.said && dist < 230 && near && a.line && mode === 'play' && talkCd <= 0) { a.said = true; say(a, a.line, 1.7 + a.line.length * .06); sfx.blip(); talkCd = 1; }
-    if (a.kind === 'run') {
+    if (a.kind === 'patrol') patrolAgent(a, dt, dx, dist, near);
+    else if (a.kind === 'run') {
       if (a.state === 'idle' && dist < 205 && near) { a.state = 'flee'; sfx.squeak(); }
       if (a.state === 'flee') {
         const dir = dx > 0 ? -1 : 1; a.face = dir;
@@ -372,16 +379,18 @@ function hitAgent(a, dir) {
   // уезжает: либо улетает (самолётом), либо убегает с чемоданом
   a.fin = pick(['launch', 'launch', 'dash']); a.koMax = a.fin === 'launch' ? .5 : .55; a.rot = 0;
   a.ko = a.koMax; a.koDir = dir; a.bub = null; hitstop = .05; sfx.bonk();
-  if (Math.random() < .85) say(a, pick(LAST), .9);
+  if (Math.random() < .85) say(a, pick(a.robo ? ROBO_LAST : LAST), .9);
   floater(pick(BONK), a.x + dir * 10, a.y - 70, { color: '#ffe36b', size: 13, t: .55, rot: rnd(-.3, .3), vy: -60 });
   fxs.push({ k: 'star', x: a.x, y: a.y - 40, t: 0, max: .12 });
-  gibs.push({ k: 'case', x: a.x, y: a.y - 20, vx: dir * rnd(80, 200), vy: -rnd(300, 420), rot: 0, vr: dir * 9, sc: .7, ci: [4, 1, 0, 3][a.v], rest: false, life: 6 });
+  if (a.robo) { for (let i = 0; i < 4; i++) gibs.push({ k: 'bolt', x: a.x, y: a.y - 40, vx: rnd(-160, 160), vy: -rnd(260, 420), rot: rnd(6), vr: rnd(-14, 14), sc: 1, rest: false, life: 7 }); sfx.zap(); }
+  else gibs.push({ k: 'case', x: a.x, y: a.y - 20, vx: dir * rnd(80, 200), vy: -rnd(300, 420), rot: 0, vr: dir * 9, sc: .7, ci: [4, 1, 0, 3][a.v], rest: false, life: 6 });
 }
 
 // ---------- drawing: world pieces ----------
 function drawSolid(s) {
   if (s.hid) return;
   const x = Math.round(s.x), y = Math.round(s.y), w = Math.round(s.w);
+  if (L.theme === 'slop') return drawSlopSolid(s, x, y, w);
   if (L.theme === 'dk' && s.k !== 'p') {
     if (s.k === 'f') {
       g.fillStyle = pats.panel; g.fillRect(x, y + 8, w, H - y);
@@ -446,6 +455,7 @@ function drawCheck(c) {
 }
 function drawGate() {
   if (L.theme === 'dk') return drawDkGate();
+  if (L.theme === 'slop') return drawSlopGate();
   const x = L.gateX, o = Math.round(L.gate * 118);
   R(x - 12, FY - 150, 94, 150, '#141a2c'); R(x - 8, FY - 146, 86, 146, '#3d4a3a'); R(x - 8, FY - 146, 86, 3, '#8fb07f');
   R(x, FY - 122, 70, 122, '#0b0712');
@@ -458,12 +468,13 @@ function drawGib(q) {
   if (q.k === 'sheet') { spr('sheet', x, y + 2, false, { rot: q.rot, sx: q.sc }); return; }
   if (q.k === 'case') { g.save(); g.translate(x, y - 10); g.rotate(q.rot); g.drawImage(caseSpr[q.ci][0], -11, -13, 22, 25); g.restore(); return; }
   g.save(); g.translate(x, y - 4); g.rotate(q.rot); g.scale(q.sc || 1, q.sc || 1);
+  if (q.k === 'bolt') { g.fillStyle = '#16161d'; g.fillRect(-4, -4, 8, 8); g.fillStyle = '#a8b0c0'; g.fillRect(-3, -3, 6, 6); g.fillStyle = '#5a6278'; g.fillRect(-1, -1, 2, 2); }
   if (q.k === 'sock') { g.fillStyle = '#16161d'; g.fillRect(-3, -7, 7, 12); g.fillRect(-3, 1, 10, 6); g.fillStyle = q.c; g.fillRect(-2, -6, 5, 10); g.fillRect(-2, 2, 8, 4); g.fillStyle = '#fff'; g.fillRect(-2, -6, 5, 2); }
   g.restore();
 }
 function drawAgent(a) {
   if (a.dead || !inView(a.x, 90)) return;
-  const pre = 'a' + a.v + '_';
+  const pre = a.robo ? 'r' + (a.v % 2) + '_' : 'a' + a.v + '_';
   let name = pre + 'idle', ox = 0, oy = 0, flip = a.face < 0;
   if (a.ko > 0) {
     if (a.fin === 'launch') { spr(pre + 'ko', a.x, a.y, a.koDir < 0, { sx: a.scale, rot: a.rot }); return; }

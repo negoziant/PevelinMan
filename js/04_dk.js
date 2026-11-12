@@ -557,7 +557,7 @@ function extraSprites() {
   for (let i = 0; i < 9; i++) { ex.fillRect(1 + i, 1 + (i * .7 | 0), 1, 1); ex.fillRect(18 - i, 1 + (i * .7 | 0), 1, 1); }
   ex.fillStyle = '#c2303c'; ex.fillRect(8, 7, 4, 4);
   out.push({ name: 'env', c: ec, w: 20, h: 14, ax: 10, ay: 14 });
-  return out;
+  return out.concat(slopSprites());
 }
 // фон этапа: стена старого ДК, склеивается сама с собой
 function makeDkBg() {
@@ -612,4 +612,5 @@ function makeStageBg() {
   x.fillStyle = 'rgba(10,6,20,.2)'; x.fillRect(0, 0, W, H);
   return c;
 }
-function buildDkArt() { bgDK = makeDkBg(); bgStage = makeStageBg(); }
+function buildDkArt() { bgDK = makeDkBg(); bgStage = makeStageBg(); buildSlopArt(); }
+BK.deg = { start: startDeg, update: updateDeg, death: updateDegDeath, hud: drawDegHud, melee: degMelee, papers: degPaperHits, intro: drawDegIntro };

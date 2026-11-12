@@ -412,7 +412,16 @@ function drawDoll(c, U, cfg, p) {
     Rr(hx0 + 4.2, hy + 3.7, 1, .6, '#9fb4d8');
     if (p.eyes === 'x') { Rr(hx0 + 4.6, hy + 3.8, .7, .7, '#fff'); Rr(hx0 + 6.2, hy + 3.8, .7, .7, '#fff'); Rr(hx0 + 5.4, hy + 4.5, .7, .7, '#fff'); }
   }
+  if (cfg.mus) Rr(hx0 + 3.8, hy + 6.4, 4.6, 1.2, cfg.mus);
   if (p.brow || cfg.brow) Rr(hx0 + 4.4, hy + 2.6, 2.8, .7, cfg.style === 'bald' ? OUTC : (hc || OUTC));
+  if (cfg.robo) {
+    // голова робота поверх лица: коробка, визор-светодиод, антенна, решётка рта
+    Rr(hx0 - .6, hy - .6, 9.4, 10.6, cfg.skin); Rr(hx0 - .6, hy - .6, 9.4, 1, dk(cfg.skin, 1.2)); Rr(hx0 - .6, hy + 9, 9.4, 1, dk(cfg.skin, .7));
+    Rr(hx0 + 2.4, hy + 2.8, 6.8, 2.6, OUTC); Rr(hx0 + 3, hy + 3.4, 5.6, 1.4, p.eyes === 'x' ? '#555a66' : cfg.led);
+    Rr(hx0 + 3.4, hy - 3.4, .8, 3, OUTC); Rr(hx0 + 3, hy - 4.4, 1.6, 1.6, cfg.led);
+    for (let i = 0; i < 3; i++) Rr(hx0 + 4 + i * 1.4, hy + 6.8, .7, 1.8, OUTC);
+    Rr(hx0 + .4, hy + 3.4, 1.4, 2.6, dk(cfg.skin, .75));
+  }
   // передняя рука
   const fh = limb(cx + 2 + tl, ty + 1.5, armF, 3, cfg.coat); hand(fh);
   if (p.prop) drawProp(p.prop, fh);

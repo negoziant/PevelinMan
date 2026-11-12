@@ -11,7 +11,7 @@ function hurtPlayer(dir, pit, kind) {
   if (P.hp <= 0) { mode = 'dead'; modeT = 0; P.vy = -420; P.vx = dir * 90; stats.deaths++; stopSong(); P.bub = null; return; }
   P.inv = 1.5; P.atk = 0;
   if (pit) { P.x = P.safeX; P.y = P.safeY; P.vx = P.vy = 0; say(P, pick(['ЯМА?!', 'КТО ТАК ВЕРСТАЕТ', 'НУ ВОТ…']), 1.2); }
-  else { P.hurtT = .34; P.vx = dir * 175; P.vy = -280; P.onGround = false; say(P, pick(kind === 'ghost' ? ['НЕ НАДО СТИХОВ!', 'Я ВАС НЕ ЗВАЛ!', 'ИЗЫДИ!'] : kind === 'zhal' || kind === 'donos' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПИСАЛ!', 'КАКОЙ НАЦИСТ?!'] : kind === 'word' ? ['КАКИЕ ГРАНТЫ?!', 'Я НЕ ПРИЛЕПИН!', 'ЭТО НЕ Я!'] : kind === 'folder' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПОДПИСЫВАЛ', 'ОЙ!'] : ['НЕТ!', 'НА ОБЛОЖКУ НЕ НАДО!', 'УБЕРИТЕ!', 'Я ЕГО НЕ ЗНАЮ!']), .9); }
+  else { P.hurtT = .34; P.vx = dir * 175; P.vy = -280; P.onGround = false; say(P, pick(['rocket', 'fist', 'wave', 'press'].includes(kind) ? ['АЙ!', 'ЖЕЛЕЗНЫЙ АРГУМЕНТ…', 'Я НЕ НАШ!', 'ОТСТАНЬ, ЖЕЛЕЗКА!'] : kind === 'ghost' ? ['НЕ НАДО СТИХОВ!', 'Я ВАС НЕ ЗВАЛ!', 'ИЗЫДИ!'] : kind === 'zhal' || kind === 'donos' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПИСАЛ!', 'КАКОЙ НАЦИСТ?!'] : kind === 'word' ? ['КАКИЕ ГРАНТЫ?!', 'Я НЕ ПРИЛЕПИН!', 'ЭТО НЕ Я!'] : kind === 'folder' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПОДПИСЫВАЛ', 'ОЙ!'] : ['НЕТ!', 'НА ОБЛОЖКУ НЕ НАДО!', 'УБЕРИТЕ!', 'Я ЕГО НЕ ЗНАЮ!']), .9); }
 }
 function attackHits() {
   const x0 = P.face > 0 ? P.x - 10 : P.x - 68, x1 = x0 + 78, y0 = P.y - 96, y1 = P.y + 8;
@@ -36,7 +36,7 @@ function attackHits() {
     if (c.x + 14 > x0 && c.x - 14 < x1 && c.y > y0 && c.y - 30 < y1) { P.atkSet.add(c); openCase(c, P.face); sfx.bonk(); }
   }
   if (L.dark) dkAttack(x0, x1, y0, y1);
-  if (boss && L.boss && boss.kind === 'deg') degMelee(x0, x1, y0, y1);
+  if (boss && L.boss && BK[boss.kind]) BK[boss.kind].melee(x0, x1, y0, y1);
   else if (boss && L.boss && !boss.dead && !P.atkSet.has(boss) && boss.x + 40 > x0 && boss.x - 40 < x1 && boss.y > y0 && boss.y - 120 < y1) { P.atkSet.add(boss); meleeBoss(); }
 }
 const IDLE_LINES = {
@@ -230,8 +230,10 @@ const B_WRITE = ['ПИШУ ЗАЯВЛЕНИЕ…', 'ТАК… «ПРОШУ ПР�
 const B_BLOCK = ['ПРОВЕРЕНО!', 'ОТКАЗАНО!', 'НЕ ПО ФОРМЕ!', 'ВХОДЯЩИЙ ЗАРЕГИСТРИРОВАН', 'В ПОРЯДКЕ ОЧЕРЕДИ!'];
 const COUNTER = ['ЗАЯВЛЕНИЕ ЗАРЕГИСТРИРОВАНО', 'ПЕРЕНАПРАВЛЕНО ПО ПОДВЕДОМСТВЕННОСТИ', 'СРОК РАССМОТРЕНИЯ: 30 ДНЕЙ', 'ОТВЕТ: НАРУШЕНИЙ НЕ ВЫЯВЛЕНО', 'КНОПКА ПРОВЕРЕНА И ИЗЪЯТА'];
 const AGENCIES = ['МВД', 'СК', 'ФСБ', 'ПРОКУРАТУРА', 'РКН', 'МИНЮСТ', 'ГИБДД', 'ФНС'];
+// боссы следующих этапов регистрируются здесь: BK.имя = { start, update, death, draw, hud, melee, papers, intro }
+const BK = {};
 function startBoss() {
-  if (LEVELS[curLevel].bossKind === 'deg') return startDeg();
+  const bk = BK[LEVELS[curLevel].bossKind]; if (bk) return bk.start();
   L = buildBossLevel(); cam = 0; look = 0;
   parts = []; gibs = []; pickups = []; folders = []; floats = []; fxs = []; blurbs = []; words = []; mir = null;
   Object.assign(P, { x: 70, y: FYB, vx: 0, vy: 0, hp: P.maxhp, face: 1, inv: 0, hurtT: 0, atk: 0, onGround: true, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 70, safeY: FYB });
@@ -266,7 +268,7 @@ function meleeBoss() {
   P.vx = -P.face * 200; P.vy = -160; P.onGround = false;
 }
 function updateBoss(dt) {
-  if (boss && boss.kind === 'deg') return updateDeg(dt);
+  if (boss && BK[boss.kind]) return BK[boss.kind].update(dt);
   const b = boss; if (!b || b.dead) return;
   b.t += dt; b.inv = Math.max(0, b.inv - dt); b.fl = Math.max(0, b.fl - dt); b.pose = Math.max(0, b.pose - dt);
   if (b.bub) { b.bub.t -= dt; if (b.bub.t <= 0) b.bub = null; }
@@ -320,7 +322,7 @@ function startBossDeath() {
   b.hatY = null; b.won = 0; b.left = false;
 }
 function updateBossDeath(dt) {
-  if (boss.kind === 'deg') return updateDegDeath(dt);
+  if (BK[boss.kind]) return BK[boss.kind].death(dt);
   const b = boss; P.vx *= .9; P.vy = Math.min(900, P.vy + GRAV * dt); collide(P, dt);
   if (mir) updateMir(dt);
   if (!b.dead) {
@@ -342,7 +344,8 @@ function updateBossDeath(dt) {
   }
 }
 function drawBoss() {
-  const b = boss; if (!b || !L.boss || b.kind === 'deg') return;
+  const b = boss; if (!b || !L.boss) return;
+  if (BK[b.kind]) { if (BK[b.kind].draw) BK[b.kind].draw(); return; }
   for (const f of folders) { const k = clamp(f.y / FYB, 0, 1), w = 6 + k * 16; R(f.x - w / 2, FYB + 1, w, 2, (gameT * 16 | 0) % 2 ? '#ff5b6b' : '#ffd0d6'); }
   const vis = !b.dead || (b.x < W + 80 && b.state === 'dying');
   if (vis) {
@@ -371,7 +374,7 @@ function drawBoss() {
 }
 function drawBossHud() {
   const b = boss; if (!b || !L.boss || !b.started) return;
-  if (b.kind === 'deg') return drawDegHud();
+  if (BK[b.kind]) return BK[b.kind].hud();
   if (!b.dead) {
     T('ВИТАЛИЙ БОРОДИН', W / 2, 16, { size: 9, color: '#8fdcff', stroke: '#16161d' });
     OV.push(c => { c.fillStyle = '#16161d'; c.fillRect(W / 2 - 152, 26, 304, 12); const sw = 300 / b.max; for (let i = 0; i < b.max; i++) { c.fillStyle = i < b.hp ? (b.phase === 3 ? '#ff5b6b' : b.phase === 2 ? '#ffb35b' : '#8fdcff') : '#2a3350'; c.fillRect(W / 2 - 150 + i * sw, 28, sw - 2, 8); } });
@@ -386,7 +389,7 @@ function drawBossHud() {
 function fadeTo(cb) { if (fadeDir === 1) return; fadeDir = 1; fadeCb = cb; }
 // какие уровни открыты, запоминается в браузере
 // OPEN — сколько уровней открыто сразу, без прохождения; passed — докуда игрок дошёл сам
-const OPEN = 2;
+const OPEN = 3;
 let passed = 1, unlocked = OPEN, curLevel = 0;
 try { passed = Math.max(1, +localStorage.getItem('pelevin_unlocked') || 1); } catch (e) { }
 unlocked = Math.max(OPEN, passed);
@@ -417,13 +420,14 @@ function updatePlay(dt) {
   if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
   updateFx(dt);
   updateDk(dt);
+  if (L.theme === 'slop' && !L.boss && mode === 'play') updateSlop(dt);
   switch (mode) {
     case 'play':
       updateWorld(dt); if (mode !== 'play') break;
       updatePlayer(dt, true); updateAgents(dt); updateBlurbs(dt); updateMir(dt); updateWords(dt);
       if (L.boss) updateBoss(dt);
       // заявление, отбитое обратно в Бородина
-      if (L.boss && boss && boss.kind === 'deg') degPaperHits();
+      if (L.boss && boss && BK[boss.kind]) BK[boss.kind].papers(dt);
       else if (L.boss && boss && !boss.dead) for (let i = blurbs.length - 1; i >= 0; i--) { const b = blurbs[i]; if (b.back && Math.abs(b.x - boss.x) < 40 && b.y > boss.y - 130 && b.y < boss.y) { blurbs.splice(i, 1); damageBoss('paper'); } }
       break;
     case 'celebrate':
@@ -482,6 +486,7 @@ function drawPlay() {
     for (const p of L.pits) if (p[1] > cx && p[0] < cx + W) drawSpikes(p[0] + 4, H - 13, p[1] - p[0] - 8);
   }
   for (const s of L.solids) if (s.x + s.w > cx - 4 && s.x < cx + W + 4) drawSolid(s);
+  if (L.theme === 'slop' && !L.boss) drawSlopFront();
   if (!L.boss) { for (const sp of L.spikes) drawSpikes(sp.x, sp.y, sp.w); for (const z of L.zaps) if (inView(z.x)) drawZap(z); }
   for (const c of L.cases) if (inView(c.x)) drawCase(c);
   for (const p of pickups) {
@@ -545,7 +550,7 @@ function drawSelect() {
   T(TOUCH ? 'тапни по уровню' : 'стрелки — выбрать, ENTER — играть', W / 2, H - 20, { size: 8, color: '#8f9ad0' });
 }
 function drawBossIntro() {
-  if (LEVELS[curLevel].bossKind === 'deg') return drawDegIntro();
+  const bk = BK[LEVELS[curLevel].bossKind]; if (bk) return bk.intro();
   const t = sceneT;
   R(0, 0, W, H, '#0a1a12'); for (let i = 0; i < 12; i++) { const y = ((i * 44 + t * 240) % (H + 44)) - 44; R(0, y, W, 16, i % 2 ? '#14301f' : '#0f2418'); }
   R(0, 150, W, 150, '#05100a'); R(0, 150, W, 3, '#8fdcff'); R(0, 297, W, 3, '#8fdcff');
@@ -567,7 +572,7 @@ function drawEnding() {
     if (t > .6) T(lv.endA || 'ОБЛОЖКА ЧИСТА.', W / 2, 66, { size: 24, color: '#fff' });
     if (t > 2.6) T(lv.endB || 'Надолго ли?', W / 2, 102, { size: 13, color: '#8fdcff' });
     const mm = (stats.time / 60 | 0) + ':' + String(stats.time % 60 | 0).padStart(2, '0');
-    const rows = [['ТИРАЖ', stats.copies], ['ЧЕМОДАНОВ', stats.cases + '/' + stats.casesTotal], ['БЛЁРБОВ ОТБИТО', stats.deflected], ['БЛЁРБОВ НА ОБЛОЖКЕ', stats.got], ['РЕЛОЦИРОВАНО', stats.relocated + (stats.left ? ' (' + stats.left + ' ОСТАЛИСЬ)' : '')], ['ЛУЧШЕЕ КОМБО', 'x' + stats.best], ['ВРЕМЯ', mm]];
+    const rows = [['ТИРАЖ', stats.copies], ['ЧЕМОДАНОВ', stats.cases + '/' + stats.casesTotal], ['БЛЁРБОВ ОТБИТО', stats.deflected], ['БЛЁРБОВ НА ОБЛОЖКЕ', stats.got], [lv.relocLabel || 'РЕЛОЦИРОВАНО', stats.relocated + (stats.left ? ' (' + stats.left + ' ОСТАЛИСЬ)' : '')], ['ЛУЧШЕЕ КОМБО', 'x' + stats.best], ['ВРЕМЯ', mm]];
     if (lv.bossKind === 'deg') rows.splice(5, 0, ['ПРИЗРАКОВ ИЗГНАНО', stats.ghosts]);
     const rh = rows.length > 7 ? 20 : 23;
     rows.forEach((r, i) => { if (t > 4.4 + i * .45) { T(r[0], W / 2 - 14, 140 + i * rh, { size: 10, color: '#8f9ad0', align: 'right' }); T(String(r[1]), W / 2 + 14, 140 + i * rh, { size: 10, color: '#ffe36b', align: 'left' }); } });
@@ -649,9 +654,10 @@ function step(dt) {
     }
     case 'play': updatePlay(dt * slow); break;
     case 'bossintro':
-      if (sceneT > .9 && sceneT < 2.2 && ((sceneT - .9) * 12 | 0) !== ((sceneT - dt - .9) * 12 | 0)) sfx.blip();
-      if (sceneT > 2 && sceneT - dt <= 2) sfx.stamp();
-      if ((sceneT > 4.6 || (sceneT > 1.2 && go)) && !fadeDir) fadeTo(startBoss);
+      { const bk = BK[LEVELS[curLevel].bossKind];
+        if (bk && bk.introTick) bk.introTick(dt);
+        else { if (sceneT > .9 && sceneT < 2.2 && ((sceneT - .9) * 12 | 0) !== ((sceneT - dt - .9) * 12 | 0)) sfx.blip(); if (sceneT > 2 && sceneT - dt <= 2) sfx.stamp(); }
+        if ((sceneT > ((bk && bk.introLen) || 4.6) || (sceneT > 1.2 && go)) && !fadeDir) fadeTo(startBoss); }
       break;
     case 'ending':
       if (!credits) { if (sceneT > 12 || (sceneT > 5 && go)) credits = makeCredits(); }
@@ -685,7 +691,7 @@ window.__dbg = {
   get s() { return { scene, mode, x: P.x, y: P.y, hp: P.hp, relocated: stats && stats.relocated, got: stats && stats.got, boss: boss && { hp: boss.hp, state: boss.state, phase: boss.phase, x: boss.x }, mir: mir && { st: mir.st, x: mir.x }, cam, agents: L && L.agents.length, blurbs: blurbs.length, words: words.length, chain, fade }; },
   warp(x, y) { P.x = x; P.y = y === undefined ? FY : y; P.vx = P.vy = 0; cam = clamp(x - 360, 0, L.w - W); },
   god(v) { P.maxhp = v ? 99 : 5; P.hp = P.maxhp; },
-  start(i) { startLevel(i || 0); }, deg() { curLevel = 1; startDeg(); }, lite: () => lite, ghosts: () => ghosts, darkAt(t) { lite.t = t; }, mir() { startMir(); }, cele(k) { cele.n = 4; startCelebrate(); if (k) cele.kind = k; }, idle(k) { P.idleT = 4; P.idleAnim = k; P.idleA = 0; }, boss() { startBoss(); }, bosshp(n) { boss.hp = n; }, ending() { startEnding(); }, intro() { startBossIntro(); },
+  start(i) { startLevel(i || 0); }, deg() { curLevel = 1; startDeg(); }, yak() { curLevel = 2; startYak(); }, yakIntro() { curLevel = 2; startBossIntro(); }, lite: () => lite, ghosts: () => ghosts, darkAt(t) { lite.t = t; }, mir() { startMir(); }, cele(k) { cele.n = 4; startCelebrate(); if (k) cele.kind = k; }, idle(k) { P.idleT = 4; P.idleAnim = k; P.idleA = 0; }, boss() { startBoss(); }, bosshp(n) { boss.hp = n; }, ending() { startEnding(); }, intro() { startBossIntro(); },
   bossObj: () => boss, L: () => L, P, F, stats: () => stats, atlas: () => atlas,
   blurb() { const a = L.agents.filter(r => !r.dead).sort((p, q) => Math.abs(p.x - P.x) - Math.abs(q.x - P.x))[0]; if (a) throwBlurb(a); }
 };
