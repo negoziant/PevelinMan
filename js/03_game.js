@@ -95,7 +95,7 @@ function drawPlayer() {
     else { const q = (t / .22 | 0); name = q % 2 ? 'p_dance2' : 'p_dance1'; if ((q / 2 | 0) % 2) flip = !flip; oy = -Math.abs(Math.sin(t * 14.3)) * 6; }
   }
   else if (mode === 'bossdeath' && boss && boss.won) { name = 'p_proud'; oy = -Math.abs(Math.sin(gameT * 6)) * 3; }
-  else if (mode === 'dead' || P.hurtT > 0) name = 'p_hit';
+  else if (mode === 'dead' || mode === 'fakedead' || P.hurtT > 0) name = 'p_hit';
   else if (P.signT > 0) { name = 'p_write'; oy = (gameT * 8 | 0) % 2 ? -1 : 0; }
   else if (P.atk > 0) name = (ATK_T - P.atk) < .06 ? 'p_wind' : 'p_smash';
   else if (!P.onGround) name = 'p_jump';
@@ -452,6 +452,7 @@ function updatePlay(dt) {
       if (modeT > 1.5 && anyPress) fadeTo(respawn);
       break;
     case 'bossdeath': tickBubbles(dt); updateBossDeath(dt); break;
+    case 'fakedead': if (boss && BK[boss.kind] && BK[boss.kind].fake) BK[boss.kind].fake(dt); break;
   }
 }
 function startBossIntro() { stats.left = L.agents.filter(a => !a.dead).length; scene = 'bossintro'; sceneT = 0; stopSong(); tn('sawtooth', 82, 78, 1.4, .2); tn('sawtooth', 62, 58, 1.6, .2, .5); }
@@ -473,7 +474,7 @@ function drawHud() {
     T(cele.title, W / 2, L.after ? 100 : 122, { size: L.after ? 30 : 12, color: '#fff', stroke: '#16161d', sw: L.after ? 8 : 4 });
     if (cele.kind === 'laugh' && !L.after) for (let i = 0; i < 3; i++) T('ХА', P.x - camR + Math.sin(t * 7 + i * 2) * 50, P.y - 110 - ((t * 60 + i * 26) % 70), { size: 11, color: '#8fdcff', stroke: '#16161d', rot: Math.sin(t * 5 + i) * .3 });
   }
-  if (mode === 'dead' && modeT > 1) { const d = DEATH[P.lastHit] || DEATH.misc; T(d[0], W / 2, 150, { size: 26, color: '#ff5b6b', stroke: '#16161d', sw: 8 }); T(d[1], W / 2, 190, { size: 9, color: '#fff', stroke: '#16161d' }); if (modeT > 1.5 && (gameT * 2 | 0) % 2) T(TOUCH ? 'ТАПНИ' : 'ЛЮБАЯ КНОПКА', W / 2, 226, { size: 10, color: '#ffe36b', stroke: '#16161d' }); }
+  if ((mode === 'dead' || mode === 'fakedead') && modeT > 1) { const d = DEATH[P.lastHit] || DEATH.misc; T(d[0], W / 2, 150, { size: 26, color: '#ff5b6b', stroke: '#16161d', sw: 8 }); T(d[1], W / 2, 190, { size: 9, color: '#fff', stroke: '#16161d' }); if (modeT > 1.5 && (gameT * 2 | 0) % 2) T(TOUCH ? 'ТАПНИ' : 'ЛЮБАЯ КНОПКА', W / 2, 226, { size: 10, color: '#ffe36b', stroke: '#16161d' }); }
   drawDkHud();
   if (boss && L.boss && boss.won && mode === 'bossdeath') { const pz = boss.prize || ['ПОЛУЧЕНО: ЧИСТАЯ ОБЛОЖКА', '(ни одного блёрба)']; T(pz[0], W / 2, 96, { size: 20, color: '#ffe36b', stroke: '#16161d', sw: 7 }); T(pz[1], W / 2, 128, { size: 12, color: '#fff', stroke: '#16161d', sw: 5 }); }
 }

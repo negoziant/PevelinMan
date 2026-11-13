@@ -394,14 +394,29 @@ function nasPapers() {
   const b = boss; if (!b || b.dead || b.off) return;
   for (let i = words.length - 1; i >= 0; i--) { const w = words[i]; if (w.back && Math.abs(w.x - b.x) < 30) { words.splice(i, 1); burst(b.x, w.y, 12, ['#7fe08a', '#fff'], 180, .4); nasDamage('word'); } }
 }
-// не дать умереть: один раз
+// умереть в бою с ней нельзя. Первый раз — полная сцена смерти, а через 2 с она решает,
+// что ещё не закончили. Дальше без драмы: бросает фразу, и здоровье снова полное.
 function nasSave() {
-  const b = boss; if (!b || b.saved || b.dead) return false;
-  b.saved = true; P.hp = P.maxhp; P.inv = 2.2; P.hurtT = .4; P.vx = -150; P.vy = -300; hitstop = .5; flash = .8; shake = 14; sfx.shout(); sfx.boom();
-  say(b, 'ЭТО Я РЕШАЮ, КОГДА МЫ ЗАКОНЧИМ!', 2.8);
-  floater('«НИКТО НЕ УМРЁТ»', W / 2, 140, { scr: true, color: '#fff', size: 18, t: 2.4, vy: -6 });
-  words = words.filter(w => w.back); slabs = [];
+  const b = boss; if (!b || b.dead) return false;
+  if (b.saved) {
+    P.hp = P.maxhp; P.inv = 2; sfx.heal();
+    say(b, pick(['Я ЖЕ СКАЗАЛА: Я РЕШАЮ', 'МЫ ЕЩЁ НЕ ЗАКОНЧИЛИ', 'ВСТАВАЙ. ПОСТ НЕ ДОПИСАН', 'РАНО. У МЕНЯ ЕЩЁ ТРИ АБЗАЦА', 'НИКТО НЕ УМРЁТ. ЭТО Я РЕШИЛА']), 1.8);
+    return true;
+  }
+  b.saved = true; mode = 'fakedead'; modeT = 0; P.vy = -420; P.vx = -90; P.bub = null; stats.deaths++; stopSong(); b.bub = null;
   return true;
+}
+function nasFake(dt) {
+  const b = boss; tickBubbles(dt);
+  P.vy += GRAV * .7 * dt; P.y += P.vy * dt; P.x += P.vx * dt;
+  if (modeT > 2.1) {
+    mode = 'play'; modeT = 0;
+    Object.assign(P, { x: 90, y: FYB, vx: 0, vy: 0, hp: P.maxhp, inv: 2.6, hurtT: 0, atk: 0, onGround: true, bub: null });
+    hitstop = .9; flash = .9; shake = 16; sfx.shout(); sfx.boom(); playSong('nas');
+    say(b, 'ЭТО Я РЕШАЮ, КОГДА МЫ ЗАКОНЧИМ!', 3);
+    floater('«НИКТО НЕ УМРЁТ»', W / 2, 140, { scr: true, color: '#fff', size: 18, t: 2.6, vy: -6 });
+    words = words.filter(w => w.back); slabs = [];
+  }
 }
 function nasFakeHeart() {
   const fake = Math.random() < .55, x = clamp(P.x + rnd(-160, 160), 40, 440);
@@ -582,7 +597,7 @@ function drawNasIntro() {
   if (t > 3.6) T('финальный босс. всё переврёт', 240, 150, { size: 8, color: '#ff8a94', stroke: OUTC });
   if (t > 4.4) T('…И ЗАКРЫТЬ НЕ УСПЕЛ', 240, 180, { size: 10, color: '#ffe36b', stroke: OUTC });
 }
-BK.nas = { start: startNas, update: updateNas, death: updateNasDeath, draw: drawNas, hud: drawNasHud, melee: nasMelee, papers: nasPapers, intro: drawNasIntro, introTick: nasIntroTick, introLen: 6, save: nasSave };
+BK.nas = { start: startNas, update: updateNas, death: updateNasDeath, draw: drawNas, hud: drawNasHud, melee: nasMelee, papers: nasPapers, intro: drawNasIntro, introTick: nasIntroTick, introLen: 6, save: nasSave, fake: nasFake };
 Object.assign(window.__dbg, { nas() { curLevel = 5; startNas(); }, nasIntro() { curLevel = 5; startBossIntro(); }, feed: () => L, hurt() { hurtPlayer(1, false, 'post'); } });
 
 // ---------- музыка ----------

@@ -1297,7 +1297,7 @@ function drawPlayer() {
     else { const q = (t / .22 | 0); name = q % 2 ? 'p_dance2' : 'p_dance1'; if ((q / 2 | 0) % 2) flip = !flip; oy = -Math.abs(Math.sin(t * 14.3)) * 6; }
   }
   else if (mode === 'bossdeath' && boss && boss.won) { name = 'p_proud'; oy = -Math.abs(Math.sin(gameT * 6)) * 3; }
-  else if (mode === 'dead' || P.hurtT > 0) name = 'p_hit';
+  else if (mode === 'dead' || mode === 'fakedead' || P.hurtT > 0) name = 'p_hit';
   else if (P.signT > 0) { name = 'p_write'; oy = (gameT * 8 | 0) % 2 ? -1 : 0; }
   else if (P.atk > 0) name = (ATK_T - P.atk) < .06 ? 'p_wind' : 'p_smash';
   else if (!P.onGround) name = 'p_jump';
@@ -1654,6 +1654,7 @@ function updatePlay(dt) {
       if (modeT > 1.5 && anyPress) fadeTo(respawn);
       break;
     case 'bossdeath': tickBubbles(dt); updateBossDeath(dt); break;
+    case 'fakedead': if (boss && BK[boss.kind] && BK[boss.kind].fake) BK[boss.kind].fake(dt); break;
   }
 }
 function startBossIntro() { stats.left = L.agents.filter(a => !a.dead).length; scene = 'bossintro'; sceneT = 0; stopSong(); tn('sawtooth', 82, 78, 1.4, .2); tn('sawtooth', 62, 58, 1.6, .2, .5); }
@@ -1675,7 +1676,7 @@ function drawHud() {
     T(cele.title, W / 2, L.after ? 100 : 122, { size: L.after ? 30 : 12, color: '#fff', stroke: '#16161d', sw: L.after ? 8 : 4 });
     if (cele.kind === 'laugh' && !L.after) for (let i = 0; i < 3; i++) T('ХА', P.x - camR + Math.sin(t * 7 + i * 2) * 50, P.y - 110 - ((t * 60 + i * 26) % 70), { size: 11, color: '#8fdcff', stroke: '#16161d', rot: Math.sin(t * 5 + i) * .3 });
   }
-  if (mode === 'dead' && modeT > 1) { const d = DEATH[P.lastHit] || DEATH.misc; T(d[0], W / 2, 150, { size: 26, color: '#ff5b6b', stroke: '#16161d', sw: 8 }); T(d[1], W / 2, 190, { size: 9, color: '#fff', stroke: '#16161d' }); if (modeT > 1.5 && (gameT * 2 | 0) % 2) T(TOUCH ? 'ТАПНИ' : 'ЛЮБАЯ КНОПКА', W / 2, 226, { size: 10, color: '#ffe36b', stroke: '#16161d' }); }
+  if ((mode === 'dead' || mode === 'fakedead') && modeT > 1) { const d = DEATH[P.lastHit] || DEATH.misc; T(d[0], W / 2, 150, { size: 26, color: '#ff5b6b', stroke: '#16161d', sw: 8 }); T(d[1], W / 2, 190, { size: 9, color: '#fff', stroke: '#16161d' }); if (modeT > 1.5 && (gameT * 2 | 0) % 2) T(TOUCH ? 'ТАПНИ' : 'ЛЮБАЯ КНОПКА', W / 2, 226, { size: 10, color: '#ffe36b', stroke: '#16161d' }); }
   drawDkHud();
   if (boss && L.boss && boss.won && mode === 'bossdeath') { const pz = boss.prize || ['ПОЛУЧЕНО: ЧИСТАЯ ОБЛОЖКА', '(ни одного блёрба)']; T(pz[0], W / 2, 96, { size: 20, color: '#ffe36b', stroke: '#16161d', sw: 7 }); T(pz[1], W / 2, 128, { size: 12, color: '#fff', stroke: '#16161d', sw: 5 }); }
 }
@@ -4525,14 +4526,29 @@ function nasPapers() {
   const b = boss; if (!b || b.dead || b.off) return;
   for (let i = words.length - 1; i >= 0; i--) { const w = words[i]; if (w.back && Math.abs(w.x - b.x) < 30) { words.splice(i, 1); burst(b.x, w.y, 12, ['#7fe08a', '#fff'], 180, .4); nasDamage('word'); } }
 }
-// не дать умереть: один раз
+// умереть в бою с ней нельзя. Первый раз — полная сцена смерти, а через 2 с она решает,
+// что ещё не закончили. Дальше без драмы: бросает фразу, и здоровье снова полное.
 function nasSave() {
-  const b = boss; if (!b || b.saved || b.dead) return false;
-  b.saved = true; P.hp = P.maxhp; P.inv = 2.2; P.hurtT = .4; P.vx = -150; P.vy = -300; hitstop = .5; flash = .8; shake = 14; sfx.shout(); sfx.boom();
-  say(b, 'ЭТО Я РЕШАЮ, КОГДА МЫ ЗАКОНЧИМ!', 2.8);
-  floater('«НИКТО НЕ УМРЁТ»', W / 2, 140, { scr: true, color: '#fff', size: 18, t: 2.4, vy: -6 });
-  words = words.filter(w => w.back); slabs = [];
+  const b = boss; if (!b || b.dead) return false;
+  if (b.saved) {
+    P.hp = P.maxhp; P.inv = 2; sfx.heal();
+    say(b, pick(['Я ЖЕ СКАЗАЛА: Я РЕШАЮ', 'МЫ ЕЩЁ НЕ ЗАКОНЧИЛИ', 'ВСТАВАЙ. ПОСТ НЕ ДОПИСАН', 'РАНО. У МЕНЯ ЕЩЁ ТРИ АБЗАЦА', 'НИКТО НЕ УМРЁТ. ЭТО Я РЕШИЛА']), 1.8);
+    return true;
+  }
+  b.saved = true; mode = 'fakedead'; modeT = 0; P.vy = -420; P.vx = -90; P.bub = null; stats.deaths++; stopSong(); b.bub = null;
   return true;
+}
+function nasFake(dt) {
+  const b = boss; tickBubbles(dt);
+  P.vy += GRAV * .7 * dt; P.y += P.vy * dt; P.x += P.vx * dt;
+  if (modeT > 2.1) {
+    mode = 'play'; modeT = 0;
+    Object.assign(P, { x: 90, y: FYB, vx: 0, vy: 0, hp: P.maxhp, inv: 2.6, hurtT: 0, atk: 0, onGround: true, bub: null });
+    hitstop = .9; flash = .9; shake = 16; sfx.shout(); sfx.boom(); playSong('nas');
+    say(b, 'ЭТО Я РЕШАЮ, КОГДА МЫ ЗАКОНЧИМ!', 3);
+    floater('«НИКТО НЕ УМРЁТ»', W / 2, 140, { scr: true, color: '#fff', size: 18, t: 2.6, vy: -6 });
+    words = words.filter(w => w.back); slabs = [];
+  }
 }
 function nasFakeHeart() {
   const fake = Math.random() < .55, x = clamp(P.x + rnd(-160, 160), 40, 440);
@@ -4713,7 +4729,7 @@ function drawNasIntro() {
   if (t > 3.6) T('финальный босс. всё переврёт', 240, 150, { size: 8, color: '#ff8a94', stroke: OUTC });
   if (t > 4.4) T('…И ЗАКРЫТЬ НЕ УСПЕЛ', 240, 180, { size: 10, color: '#ffe36b', stroke: OUTC });
 }
-BK.nas = { start: startNas, update: updateNas, death: updateNasDeath, draw: drawNas, hud: drawNasHud, melee: nasMelee, papers: nasPapers, intro: drawNasIntro, introTick: nasIntroTick, introLen: 6, save: nasSave };
+BK.nas = { start: startNas, update: updateNas, death: updateNasDeath, draw: drawNas, hud: drawNasHud, melee: nasMelee, papers: nasPapers, intro: drawNasIntro, introTick: nasIntroTick, introLen: 6, save: nasSave, fake: nasFake };
 Object.assign(window.__dbg, { nas() { curLevel = 5; startNas(); }, nasIntro() { curLevel = 5; startBossIntro(); }, feed: () => L, hurt() { hurtPlayer(1, false, 'post'); } });
 
 // ---------- музыка ----------
