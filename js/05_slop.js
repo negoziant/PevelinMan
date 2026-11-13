@@ -458,8 +458,6 @@ function yakIntroTick(dt) {
   const t = sceneT, at = k => t >= k && t - dt < k;
   if (at(.9) || at(4.8)) sfx.blip2();
   if (at(2.9)) sfx.shout();
-  if (at(6.4)) { sfx.jump(); }
-  if (at(7.2)) { sfx.boom(); sfx.thud(); shake = 16; }
   if (at(7.7)) sfx.stamp();
   if (t > 7.8 && t < 9.6 && ((t - 7.8) * 12 | 0) !== ((t - dt - 7.8) * 12 | 0)) sfx.blip();
 }
@@ -472,21 +470,15 @@ function drawYakIntro() {
     const bx = t < .8 ? W + 40 - (W + 40 - 560) * (t / .8) : 560;
     const nm = t < .8 ? ((t * 8 | 0) % 2 ? 'y_w0' : 'y_w1') : t > 4.8 ? 'y_point' : 'y_stand';
     spr(nm, bx, FYB - (t < .8 ? Math.abs(Math.sin(t * 14)) * 3 : 0), true);
-  } else if (t < 7) spr('y_shout', 560, FYB - (t - 6.4) * 900, true);
+  } else if (t < 8) { const bx = 560 + (t - 6.4) * 260; spr((t * 8 | 0) % 2 ? 'y_w0' : 'y_w1', bx, FYB - Math.abs(Math.sin(t * 14)) * 3, false); }
   if (t > .9 && t < 2.7) bubble('ПЕЛЕВИН? ШПАНА НА МОЁМ ЗАВОДЕ?', 560, FYB - 130, { prio: 5, size: 10, max: 18 });
   if (t > 2.9 && t < 4.6) bubble('БОРИС, ИДИ НАХУЙ.', 200, FYB - 96, { prio: 5, size: 12, max: 20, bg: '#e9f1ff', color: '#1b2a6b' });
   if (t > 4.8 && t < 6.4) bubble('ЭТО Я ТЕБЕ СЕЙЧАС ПОКАЖУ.', 560, FYB - 130, { prio: 5, size: 10, max: 18 });
-  // робот
-  if (t > 6.6) {
-    const f = { x: 600, kneel: 0, lift: t < 7.2 ? (7.2 - t) / .6 * 420 : 0, stepT: 0, walking: false, fist: null, hatch: 0, heat: false, fl: 0, state: 'greet' };
-    drawRobot(f, t > 7.2 && t < 8 ? 'shout' : 'idle');
-    if (t > 7.4) T('НЕЙРОСЛОП', 600 - 0, yakGeo(f).tY + 39, { size: 7, color: '#39ff8a' });
-  }
   if (t > 7.8) {
-    const nm = 'ЖЕЛЕЗНЫЙ БОРИС ЯКЕМЕНКО', n = clamp(((t - 7.8) * 12 | 0), 0, nm.length);
+    const nm = 'БОРИС ЯКЕМЕНКО', n = clamp(((t - 7.8) * 12 | 0), 0, nm.length);
     T(nm.slice(0, n), W / 2, 70, { size: 20, color: '#fff', stroke: '#801820', sw: 7 });
   }
-  if (t > 9.8) T('работает на нейрослопе. бей в купол', W / 2, 104, { size: 8, color: '#ffe36b', stroke: OUTC });
+  if (t > 9.8) T('ушёл готовить сюрприз', W / 2, 104, { size: 8, color: '#ffe36b', stroke: OUTC });
 }
 BK.yak = { start: startYak, update: updateYak, death: updateYakDeath, hud: drawYakHud, melee: yakMelee, papers: yakPapers, intro: drawYakIntro, introTick: yakIntroTick, introLen: YI.len };
 
