@@ -114,6 +114,7 @@ function drawRaid() {
   if (r.pb) bubble(r.pb.s, r.x + r.d * 36 - camR, y - 72, { size: 7, max: 16, prio: 0, bg: '#dfe6ff', color: '#1b2a6b' });
 }
 function updateListva(dt) { updateFans(dt); updateRaid(dt); }
+THEME.listva = { solid: (s, x, y, w) => drawListvaSolid(s, x, y, w), gate: () => drawListvaGate(), update: updateListva, back: () => drawListvaBack(), front: () => drawListvaFront() };
 function drawListvaBack() { drawRaid(); }
 function drawListvaFront() {
   drawFans();
@@ -209,7 +210,7 @@ function makeHallBg() {
   x.fillStyle = 'rgba(10,6,20,.22)'; x.fillRect(0, 0, W, H);
   return c;
 }
-function buildListvaArt() { bgListva = makeListvaBg(); bgHall = makeHallBg(); }
+function buildListvaArt() { bgListva = makeListvaBg(); bgHall = makeHallBg(); buildNiiArt(); }
 
 // ---------- внешности ----------
 const FAN_LOOK = [
@@ -259,7 +260,7 @@ function listvaSprites() {
   const [pc, px] = mkCanvas(20, 8);
   px.fillStyle = OUTC; px.fillRect(0, 2, 20, 5); px.fillRect(3, 0, 14, 8); px.fillStyle = '#f4f6fa'; px.fillRect(1, 3, 18, 3); px.fillRect(4, 1, 12, 6); px.fillStyle = '#4a8ad0'; px.fillRect(6, 3, 8, 1); px.fillStyle = '#c8d0e0'; px.fillRect(4, 6, 12, 1);
   out.push({ name: 'plate', c: pc, w: 20, h: 8, ax: 10, ay: 4 });
-  return out;
+  return out.concat(niiSprites());
 }
 
 // ---------- уровень ----------

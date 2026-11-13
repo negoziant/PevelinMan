@@ -412,11 +412,14 @@ function drawDoll(c, U, cfg, p) {
   if (cfg.stubble) { Rr(hx0 + .3, hy + 6.4, 8.2, 3.8, cfg.stubble); Rr(hx0 + 2.2, hy + 10, 5.2, .8, cfg.stubble); }
   if (cfg.goatee) { Rr(hx0 + 4.4, hy + 6.4, 3.6, .8, cfg.goatee); Rr(hx0 + 3.8, hy + 8.7, 4.4, 1.9, cfg.goatee); Rr(hx0 + 4.4, hy + 10.4, 3.2, 1, cfg.goatee); }
   if (cfg.beard) { Rr(hx0 + .4, hy + 6, 8, 4.6, cfg.beard); Rr(hx0 + 2, hy + 10, 5.6, 1.6, cfg.beard); Rr(hx0 + .4, hy + 3, 1.6, 4, cfg.beard); }
-  if (p.mouth === 'o') { Rr(hx0 + 5, hy + 6.8, 2.6, 2.6, '#5a1018'); Rr(hx0 + 5.4, hy + 8.4, 1.8, .8, '#e0525c'); }
+  if (cfg.blank) { /* ширлик: лица нет */ }
+  else if (p.mouth === 'o') { Rr(hx0 + 5, hy + 6.8, 2.6, 2.6, '#5a1018'); Rr(hx0 + 5.4, hy + 8.4, 1.8, .8, '#e0525c'); }
   else if (p.mouth === 'smile') { Rr(hx0 + 4.6, hy + 7.3, 3, .8, OUTC); Rr(hx0 + 4.2, hy + 6.7, .8, .8, OUTC); }
   else if (!cfg.beard || cfg.lips) Rr(hx0 + 5, hy + 7.6, 2.2, .7, cfg.lips || OUTC);
   if (cfg.glasses === true) { Rr(hx0 + 3.7, hy + 3.1, 3.8, 2.9, OUTC); Rr(hx0 + 4.2, hy + 3.6, 2.8, 1.9, '#cfe8ff'); Rr(hx0 + 1, hy + 3.6, 3, .6, OUTC); }
-  if (p.eyes === 'x') { Rr(hx0 + 4.6, hy + 3.4, .8, .8, OUTC); Rr(hx0 + 6, hy + 3.4, .8, .8, OUTC); Rr(hx0 + 5.3, hy + 4.1, .8, .8, OUTC); Rr(hx0 + 4.6, hy + 4.8, .8, .8, OUTC); Rr(hx0 + 6, hy + 4.8, .8, .8, OUTC); }
+  if (cfg.fangs) { Rr(hx0 + 5, hy + 8.3, .7, 1.1, '#fff'); Rr(hx0 + 6.6, hy + 8.3, .7, 1.1, '#fff'); }
+  if (cfg.blank) { Rr(hx0 + 4.4, hy + 4.2, 3, .5, dk(cfg.skin, .8)); }
+  else if (p.eyes === 'x') { Rr(hx0 + 4.6, hy + 3.4, .8, .8, OUTC); Rr(hx0 + 6, hy + 3.4, .8, .8, OUTC); Rr(hx0 + 5.3, hy + 4.1, .8, .8, OUTC); Rr(hx0 + 4.6, hy + 4.8, .8, .8, OUTC); Rr(hx0 + 6, hy + 4.8, .8, .8, OUTC); }
   else if (p.eyes === 'shut') Rr(hx0 + 4.8, hy + 4.4, 2, .7, OUTC);
   else Rr(hx0 + 5.2, hy + 3.9, 1.2, 1.5, OUTC);
   if (cfg.glasses === 'aviator') {
@@ -424,6 +427,7 @@ function drawDoll(c, U, cfg, p) {
     Rr(hx0 + 4.2, hy + 3.7, 1, .6, '#9fb4d8');
     if (p.eyes === 'x') { Rr(hx0 + 4.6, hy + 3.8, .7, .7, '#fff'); Rr(hx0 + 6.2, hy + 3.8, .7, .7, '#fff'); Rr(hx0 + 5.4, hy + 4.5, .7, .7, '#fff'); }
   }
+  if (cfg.glasses === 'shades') { Rr(hx0 + .8, hy + 3.6, 3, .6, OUTC); Rr(hx0 + 3.6, hy + 3.3, 4.8, 1.9, OUTC); Rr(hx0 + 4.1, hy + 3.6, 1.2, .5, '#6a6a7a'); }
   if (cfg.mus) Rr(hx0 + 3.8, hy + 6.4, 4.6, 1.2, cfg.mus);
   if (p.brow || cfg.brow) Rr(hx0 + 4.4, hy + 2.6, 2.8, .7, cfg.style === 'bald' ? OUTC : (hc || OUTC));
   if (cfg.robo) {
@@ -451,6 +455,8 @@ function drawDoll(c, U, cfg, p) {
     else if (k === 'mop') { const fy = hipY + 12.2; Rr(x - .4, y - 2, .9, fy - y, '#a07040'); Rr(x - 3.2, fy - 2.2, 7.4, 2.2, '#cfd0d8'); for (let i = 0; i < 4; i++) Rr(x - 3 + i * 2, fy - .5, .8, .8, '#9a9aa8'); hand(e); }
     else if (k === 'plate') { Rr(x - 3.2, y - 2.6, 6.8, 1.6, '#f4f6fa'); Rr(x - 2.2, y - 1, 4.6, .8, '#c8d0e0'); Rr(x - 1, y - 2.4, 2, .5, '#4a8ad0'); hand(e); }
     else if (k === 'bottle') { Rr(x - .9, y - 6.4, 2.2, 5.4, '#dff0ff'); Rr(x - .4, y - 8, 1.2, 1.8, '#dff0ff'); Rr(x - .9, y - 4.8, 2.2, 1.6, '#f4f4f8'); Rr(x - .5, y - 4.4, 1.4, .6, '#d81b2a'); hand(e); }
+    else if (k === 'shroom') { Rr(x - .5, y - 3, 1.2, 3, '#f4f0e0'); Rr(x - 2.2, y - 4.8, 4.6, 2, '#d8d8a8'); Rr(x - 1.4, y - 5.4, 3, .8, '#e8e8c0'); hand(e); }
+    else if (k === 'can') { Rr(x - 2.2, y - .4, 4.6, 6, '#a3111f'); Rr(x - 2.2, y - .4, 4.6, 1, '#d84a4a'); Rr(x - 1.4, y + 2, 3, 1.4, '#f4f0e0'); Rr(x - .4, y - 1.4, 1, 1, OUTC); }
     else if (k === 'pen') { Rr(x + .6, y - 4, .9, 4, '#2a4aa0'); hand(e); }
   }
 }
@@ -467,6 +473,8 @@ function outline(c, w, h) {
 const LOOK = {
   // Пелевин: пышные тёмные волосы, авиаторы, щетина, футболка под курткой
   pel: { skin: '#ecc3a0', hair: '#231a14', style: 'wavy', glasses: 'aviator', stubble: '#c69c7e', coat: '#2b2f3a', shirt: '#a8a8b4', pants: '#23232e', shoes: '#14141a' },
+  // Виктор Пелевин: короткая стрижка, узкие тёмные очки, джинсовая рубашка поверх чёрной футболки
+  vic: { skin: '#e8bc98', hair: '#5a4232', style: 'short', glasses: 'shades', stubble: '#b8907a', coat: '#5a86c0', shirt: '#16161d', pants: '#2a3550', shoes: '#2a1c14' },
   a0: { skin: '#f0c9a0', hair: '#9a9aa6', style: 'short', beret: '#3a3a52', beard: '#b8b8c4', glasses: true, coat: '#5a6b8a', scarf: '#c2303c', pants: '#3a3a4a', shoes: '#2a1c14', long: true, case: '#7a4fa0' },
   a1: { skin: '#f6d2b0', hair: '#b8462e', style: 'long', glasses: true, coat: '#7a3a5a', skirt: '#3a2a4a', pants: '#2a2030', shoes: '#14141a', lips: '#c2303c', case: '#2f6fa8' },
   a2: { skin: '#e8b890', hair: '#8a8a94', style: 'bald', beard: '#a8a8b4', coat: '#7a6a4a', shirt: '#e8e4d0', pants: '#4a3a2a', shoes: '#2a1c14', case: '#9a5a2c' },
@@ -488,7 +496,8 @@ function dollList() {
   const S = [];
   const add = (name, look, pose, U) => S.push({ name, look, pose, U: U || 2 });
   // Пелевин
-  const pel = (n, p) => add('p_' + n, 'pel', p);
+  // у каждой позы Александра есть двойник-Виктор (v_): в бою этапа 5 их путают
+  const pel = (n, p) => { add('p_' + n, 'pel', p); add('v_' + n, 'vic', p); };
   pel('idle', { armF: [.25, 5, .9, 4.4], prop: 'book' });
   RUN.forEach((r, i) => pel('r' + i, Object.assign({}, r, { prop: 'book' })));
   pel('jump', { legs: [[.3, 5.5, -.7, 5.5], [1.1, 5.5, .15, 5.5]], armB: [-2.3, 5, -2.6, 5], armF: [2.2, 5, 2.6, 4.5], prop: 'book' });
@@ -504,6 +513,9 @@ function dollList() {
   pel('dance1', { legs: [[-.4, 6, -.1, 6.2], [.4, 6, .1, 6.2]], armB: [-2.5, 5, -2.9, 5], armF: [2.5, 5, 2.9, 5], prop: 'bookup', mouth: 'smile' });
   pel('dance2', { legs: [[-.1, 6, 0, 6.2], [1.3, 6, 1, 5.6]], armB: [-.9, 5, -1.6, 4.4], armF: [2.7, 5, 3, 5], prop: 'bookup', mouth: 'o', lean: -.8 });
   pel('proud', { armF: [2.6, 5, 2.9, 5], prop: 'bookup', mouth: 'smile' });
+  pel('toss', { armF: [1.8, 5, 1.5, 5], armB: [-.6, 5, -.2, 5], lean: 1.3, mouth: 'o', legs: [[-.4, 6, -.1, 6.2], [.4, 6, .1, 6.2]] });
+  pel('void', { armF: [2.9, 5, 3.1, 4], armB: [-2.9, 5, -3.1, 4], prop: 'book', eyes: 'shut' });
+  pel('sit', { dy: 9, legs: [[1.5, 5, -1.3, 4.4], [1.4, 5, -1.5, 4.4]], armF: [1.1, 5, 2.8, 3.6], prop: 'shroom', armB: [.6, 5, 1.5, 4], mouth: 'o' });
   // иноагенты, четыре внешности
   for (let v = 0; v < 4; v++) {
     const a = (n, p) => add('a' + v + '_' + n, 'a' + v, p);

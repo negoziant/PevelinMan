@@ -43,6 +43,7 @@ function mkAgent(x, y, kind, line, o) {
   o = o || {};
   const nm = NAMES[nameI++ % NAMES.length];
   const v = o.robo ? o.robo - 1 : FEMALE(nm[0]) || FEMALE(nm[1]) ? 1 : pick([0, 2, 3]);
+  if (o.as) { nameI--; return Object.assign(mkAgentRaw(x, y, kind, line, o, 0), o.as); }
   if (o.robo) { nameI--; return Object.assign(mkAgentRaw(x, y, kind, line, o, v), { robo: true, title: 'Робонашист', name: 'Т-' + rint(100, 999), city: '', epi: '', range: o.range || 120 }); }
   return mkAgentRaw(x, y, kind, line, o, v, nm);
 }
@@ -153,6 +154,9 @@ function buildBossLevel() {
   return l;
 }
 
+// оформление этапов: THEME[имя] = { solid, gate, update, back, front } (новые этапы регистрируются тут)
+const THEME = {};
+
 // ---------- physics ----------
 function collide(e, dt) {
   const hw = e.w / 2;
@@ -227,6 +231,7 @@ function updateFx(dt) {
       pickups.splice(i, 1);
       if (p.k === 'heart') { P.hp = Math.min(P.maxhp, P.hp + 1); sfx.heal(); floater('ХОРОШАЯ РЕЦЕНЗИЯ +1', P.x, P.y - 90, { color: '#ff5b6b', size: 8, t: 1.4 }); }
       else if (p.k === 'kefir') { P.kefir = Math.min(3, (P.kefir || 0) + 1); sfx.heal(); floater('КЕФИР ×' + P.kefir, P.x, P.y - 96, { color: '#fff', t: 1.2, size: 9 }); }
+      else if (p.k === 'shroom') { P.hp = Math.min(P.maxhp, P.hp + 1); sfx.heal(); floater(pick(['ПОГАНКА +1', 'ЭТО ТОЧНО СЪЕДОБНО?', 'ВКУС ПУСТОТЫ +1']), P.x, P.y - 96, { color: '#e8e8c0', t: 1.4, size: 9 }); }
       else if (p.k === 'vodka') { P.vodka = Math.min(3, (P.vodka || 0) + 1); sfx.heal(); floater('ПУЗЫРЬ ×' + P.vodka, P.x, P.y - 96, { color: '#dff0ff', t: 1.2, size: 9 }); }
       else if (p.k === 'money') { P.hp = P.maxhp; sfx.heal(); floater('ГОНОРАР. НЕ ГРАНТ!', P.x, P.y - 96, { color: '#7fe08a', t: 2.2, size: 9 }); }
     }
@@ -240,7 +245,7 @@ function throwBlurb(a) {
   const x = a.x + a.face * 14, y = a.y - 58 * a.scale, tx = P.x, ty = P.y - 44;
   const dx = tx - x, vx = clamp(Math.abs(dx) / .95, 170, 300) * sign(dx), T = Math.abs(dx / vx), gr = 420;
   const vy = clamp((ty - y - .5 * gr * T * T) / Math.max(.3, T), -420, 160);
-  blurbs.push({ x, y, vx, vy, g: gr, q: pick(a.robo ? NEURO : QUOTES), from: a, back: false, t: 0, rot: 0 });
+  blurbs.push({ x, y, vx, vy, g: gr, q: pick(a.quotes || (a.robo ? NEURO : QUOTES)), from: a, back: false, t: 0, rot: 0 });
   a.throwA = .35; sfx.paper();
 }
 function updateBlurbs(dt) {
@@ -273,8 +278,8 @@ function relocate(a, dir) {
   burst(cx, cy, 16, ['#fff', '#ffe36b', '#cfd8e6'], 200, .5, 300);
   shake = Math.max(shake, 5); sfx.whoosh();
   pickups.push({ k: 'copy', x: cx, y: cy, vx: rnd(-40, 40), vy: -330, t: 0, rest: false });
-  if (!a.robo) memorial.push([fullName(a), 'уехал' + (isFem(a) ? 'а' : '') + ' в ' + a.city + ': ' + a.epi]);
-  floater(a.robo ? 'ОТКЛЮЧЁН: НА ПЕРЕОБУЧЕНИЕ' : 'РЕЛОКАЦИЯ: ' + a.city.toUpperCase(), cx, cy - 46, { color: '#8fdcff', size: 8, t: 1.6, vy: -22 });
+  if (!a.robo && !a.noMem) memorial.push([fullName(a), 'уехал' + (isFem(a) ? 'а' : '') + ' в ' + a.city + ': ' + a.epi]);
+  floater(a.relocTxt || (a.robo ? 'ОТКЛЮЧЁН: НА ПЕРЕОБУЧЕНИЕ' : 'РЕЛОКАЦИЯ: ' + a.city.toUpperCase(), cx, cy - 46, { color: '#8fdcff', size: 8, t: 1.6, vy: -22 }));
   chain++; chainT = 3.6; stats.best = Math.max(stats.best, chain);
   if (chain % 4 === 0) { pendingCele = true; cele.n = chain; }
   if (!P.bub && Math.random() < .45) say(P, pick(['СЧАСТЛИВОГО ПУТИ', 'ПИШИТЕ. НО НЕ МНЕ', 'НЕ НАДО БЛЁРБОВ', 'ОБЛОЖКА ЧИСТАЯ', 'Я ВАС НЕ ЗНАЮ']), 1.2);
@@ -359,7 +364,10 @@ function updateAgents(dt) {
         if (a.onGround && !groundBelow(ahead, a.y)) { a.vx = 0; a.state = 'offer'; }
         else { a.vx = a.face * 62; a.state = 'walk'; }
       } else { a.vx = 0; a.state = dist < 280 && near ? 'offer' : 'idle'; }
-      if (mode === 'play' && dist < 22 && Math.abs(P.y - a.y) < 40 && P.inv <= 0) {
+      if (mode === 'play' && dist < 22 && Math.abs(P.y - a.y) < 40 && P.inv <= 0 && a.bite) {
+        floater(a.bite, P.x, P.y - 110, { color: '#ff5b6b', size: 8, t: 2 }); hurtPlayer(sign(dx || 1), false, 'bite');
+        say(a, pick(a.biteSay || ['ВКУСНО']), 1.4);
+      } else if (mode === 'play' && dist < 22 && Math.abs(P.y - a.y) < 40 && P.inv <= 0) {
         stats.got++; floater('«ЛИЧНО ВРУЧЁН» — ' + a.name, P.x, P.y - 110, { color: '#ffe36b', size: 8, t: 2 });
         hurtPlayer(sign(dx || 1)); say(a, pick(['ВРУЧИЛ!', 'есть! на обложку!', 'теперь мы коллеги']), 1.4);
       }
@@ -381,11 +389,11 @@ function hitAgent(a, dir) {
   // уезжает: либо улетает (самолётом), либо убегает с чемоданом
   a.fin = pick(['launch', 'launch', 'dash']); a.koMax = a.fin === 'launch' ? .5 : .55; a.rot = 0;
   a.ko = a.koMax; a.koDir = dir; a.bub = null; hitstop = .05; sfx.bonk();
-  if (Math.random() < .85) say(a, pick(a.robo ? ROBO_LAST : LAST), .9);
+  if (Math.random() < .85) say(a, pick(a.lastL || (a.robo ? ROBO_LAST : LAST)), .9);
   floater(pick(BONK), a.x + dir * 10, a.y - 70, { color: '#ffe36b', size: 13, t: .55, rot: rnd(-.3, .3), vy: -60 });
   fxs.push({ k: 'star', x: a.x, y: a.y - 40, t: 0, max: .12 });
   if (a.robo) { for (let i = 0; i < 4; i++) gibs.push({ k: 'bolt', x: a.x, y: a.y - 40, vx: rnd(-160, 160), vy: -rnd(260, 420), rot: rnd(6), vr: rnd(-14, 14), sc: 1, rest: false, life: 7 }); sfx.zap(); }
-  else gibs.push({ k: 'case', x: a.x, y: a.y - 20, vx: dir * rnd(80, 200), vy: -rnd(300, 420), rot: 0, vr: dir * 9, sc: .7, ci: [4, 1, 0, 3][a.v], rest: false, life: 6 });
+  else if (!a.pre) gibs.push({ k: 'case', x: a.x, y: a.y - 20, vx: dir * rnd(80, 200), vy: -rnd(300, 420), rot: 0, vr: dir * 9, sc: .7, ci: [4, 1, 0, 3][a.v], rest: false, life: 6 });
 }
 
 // ---------- drawing: world pieces ----------
@@ -393,7 +401,7 @@ function drawSolid(s) {
   if (s.hid) return;
   const x = Math.round(s.x), y = Math.round(s.y), w = Math.round(s.w);
   if (L.theme === 'slop') return drawSlopSolid(s, x, y, w);
-  if (L.theme === 'listva') return drawListvaSolid(s, x, y, w);
+  if (THEME[L.theme] && THEME[L.theme].solid) return THEME[L.theme].solid(s, x, y, w);
   if (L.theme === 'dk' && s.k !== 'p') {
     if (s.k === 'f') {
       g.fillStyle = pats.panel; g.fillRect(x, y + 8, w, H - y);
@@ -459,7 +467,7 @@ function drawCheck(c) {
 function drawGate() {
   if (L.theme === 'dk') return drawDkGate();
   if (L.theme === 'slop') return drawSlopGate();
-  if (L.theme === 'listva') return drawListvaGate();
+  if (THEME[L.theme] && THEME[L.theme].gate) return THEME[L.theme].gate();
   const x = L.gateX, o = Math.round(L.gate * 118);
   R(x - 12, FY - 150, 94, 150, '#141a2c'); R(x - 8, FY - 146, 86, 146, '#3d4a3a'); R(x - 8, FY - 146, 86, 3, '#8fb07f');
   R(x, FY - 122, 70, 122, '#0b0712');
@@ -478,7 +486,7 @@ function drawGib(q) {
 }
 function drawAgent(a) {
   if (a.dead || !inView(a.x, 90)) return;
-  const pre = a.robo ? 'r' + (a.v % 2) + '_' : 'a' + a.v + '_';
+  const pre = a.pre || (a.robo ? 'r' + (a.v % 2) + '_' : 'a' + a.v + '_');
   let name = pre + 'idle', ox = 0, oy = 0, flip = a.face < 0;
   if (a.ko > 0) {
     if (a.fin === 'launch') { spr(pre + 'ko', a.x, a.y, a.koDir < 0, { sx: a.scale, rot: a.rot }); return; }

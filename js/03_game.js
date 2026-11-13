@@ -101,7 +101,7 @@ function drawPlayer() {
   else if (P.idleAnim && mode === 'play') { name = 'p_' + P.idleAnim; if (P.idleAnim === 'write') oy = (gameT * 8 | 0) % 2 ? -1 : 0; }
   if (P.inv > 0 && P.hurtT <= 0 && mode === 'play' && (P.inv * 18 | 0) % 2) return;
   if (name === 'p_idle' && mode === 'play') oy = (gameT * 1.6 | 0) % 2 ? -1 : 0;
-  spr(name, P.x + ox, P.y + oy, flip);
+  spr(L && L.swap ? 'v' + name.slice(1) : name, P.x + ox, P.y + oy, flip);
   if (P.atk > 0) { const e = ATK_T - P.atk; if (e > .05 && e < .17) { g.globalAlpha = .75 * (1 - (e - .05) / .12); g.strokeStyle = '#fff'; g.lineWidth = 5; g.beginPath(); const cx = P.x + P.face * 8, cy = P.y - 44; if (P.face > 0) g.arc(cx, cy, 48, -1.9, .8); else g.arc(cx, cy, 48, Math.PI - .8, Math.PI + 1.9); g.stroke(); g.globalAlpha = 1; } }
 }
 
@@ -391,7 +391,7 @@ function drawBossHud() {
 function fadeTo(cb) { if (fadeDir === 1) return; fadeDir = 1; fadeCb = cb; }
 // какие уровни открыты, запоминается в браузере
 // OPEN — сколько уровней открыто сразу, без прохождения; passed — докуда игрок дошёл сам
-const OPEN = 4;
+const OPEN = 5;
 let passed = 1, unlocked = OPEN, curLevel = 0;
 try { passed = Math.max(1, +localStorage.getItem('pelevin_unlocked') || 1); } catch (e) { }
 unlocked = Math.max(OPEN, passed);
@@ -423,7 +423,7 @@ function updatePlay(dt) {
   updateFx(dt);
   updateDk(dt);
   if (L.theme === 'slop' && !L.boss && mode === 'play') updateSlop(dt);
-  if (L.theme === 'listva' && !L.boss && mode === 'play') updateListva(dt);
+  if (THEME[L.theme] && THEME[L.theme].update && !L.boss && mode === 'play') THEME[L.theme].update(dt);
   switch (mode) {
     case 'play':
       updateWorld(dt); if (mode !== 'play') break;
@@ -483,7 +483,7 @@ function drawPlay() {
     for (const d of L.deco) if (inView(d.x)) drawCase(d, true);
     if (walker) { g.globalAlpha = .6; const st = (gameT * 14 | 0) % 2; R(walker.x - 6, FY - 6 - (st ? 2 : 0), 3, 6 + (st ? 2 : 0), '#16161d'); R(walker.x + 4, FY - 6 - (st ? 0 : 2), 3, 6 + (st ? 0 : 2), '#16161d'); g.globalAlpha = 1; drawCase({ x: walker.x, y: FY - 6 - st, ci: walker.ci, s: .8, open: false, bump: 0 }, true); }
     if (L.theme === 'dk') drawDkWorld();
-    if (L.theme === 'listva') drawListvaBack();
+    if (THEME[L.theme] && THEME[L.theme].back) THEME[L.theme].back();
     for (const s of L.signs) if (inView(s.x + s.w / 2, 200)) drawSign(s);
     for (const c of L.checks) if (inView(c.x)) drawCheck(c);
     if (inView(L.gateX, 140)) drawGate();
@@ -491,7 +491,7 @@ function drawPlay() {
   }
   for (const s of L.solids) if (s.x + s.w > cx - 4 && s.x < cx + W + 4) drawSolid(s);
   if (L.theme === 'slop' && !L.boss) drawSlopFront();
-  if (L.theme === 'listva' && !L.boss) drawListvaFront();
+  if (THEME[L.theme] && THEME[L.theme].front && !L.boss) THEME[L.theme].front();
   if (!L.boss) { for (const sp of L.spikes) drawSpikes(sp.x, sp.y, sp.w); for (const z of L.zaps) if (inView(z.x)) drawZap(z); }
   for (const c of L.cases) if (inView(c.x)) drawCase(c);
   for (const p of pickups) {
