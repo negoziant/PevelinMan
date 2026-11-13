@@ -562,7 +562,7 @@ function slopSprites() {
   kx.fillStyle = OUTC; kx.fillRect(3, 0, 6, 4); kx.fillRect(1, 3, 10, 19); kx.fillStyle = '#3a8ad8'; kx.fillRect(4, 1, 4, 2);
   kx.fillStyle = '#f8fbff'; kx.fillRect(2, 4, 8, 17); kx.fillStyle = '#3aa86a'; kx.fillRect(2, 10, 8, 6); kx.fillStyle = '#fff'; kx.fillRect(4, 12, 4, 2); kx.fillStyle = '#dfe8ef'; kx.fillRect(8, 5, 2, 15);
   out.push({ name: 'kefir', c: kc, w: 12, h: 22, ax: 6, ay: 22 });
-  return out;
+  return out.concat(listvaSprites());
 }
 // фон уровня: офис, захваченный заводом. Склеивается сам с собой
 function makeSlopBg() {
@@ -608,4 +608,4 @@ function makeFactoryBg() {
   x.fillStyle = 'rgba(8,8,22,.25)'; x.fillRect(0, 0, W, H);
   return c;
 }
-function buildSlopArt() { bgSlop = makeSlopBg(); bgFactory = makeFactoryBg(); }
+function buildSlopArt() { bgSlop = makeSlopBg(); bgFactory = makeFactoryBg(); buildListvaArt(); }

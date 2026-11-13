@@ -227,6 +227,7 @@ function updateFx(dt) {
       pickups.splice(i, 1);
       if (p.k === 'heart') { P.hp = Math.min(P.maxhp, P.hp + 1); sfx.heal(); floater('ХОРОШАЯ РЕЦЕНЗИЯ +1', P.x, P.y - 90, { color: '#ff5b6b', size: 8, t: 1.4 }); }
       else if (p.k === 'kefir') { P.kefir = Math.min(3, (P.kefir || 0) + 1); sfx.heal(); floater('КЕФИР ×' + P.kefir, P.x, P.y - 96, { color: '#fff', t: 1.2, size: 9 }); }
+      else if (p.k === 'vodka') { P.vodka = Math.min(3, (P.vodka || 0) + 1); sfx.heal(); floater('ПУЗЫРЬ ×' + P.vodka, P.x, P.y - 96, { color: '#dff0ff', t: 1.2, size: 9 }); }
       else if (p.k === 'money') { P.hp = P.maxhp; sfx.heal(); floater('ГОНОРАР. НЕ ГРАНТ!', P.x, P.y - 96, { color: '#7fe08a', t: 2.2, size: 9 }); }
     }
   }
@@ -292,7 +293,7 @@ function startCelebrate() {
 }
 function endCelebrate() {
   mode = 'play'; for (const a of L.agents) a.awe = false;
-  playSong(L.boss ? (L.song === 'robot' ? 'robot' : 'boss') : (L.song || 'level')); P.idleT = 0;
+  playSong(L.boss ? (L.song || 'boss') : (L.song || 'level')); P.idleT = 0;
 }
 
 // ---------- suitcases ----------
@@ -392,6 +393,7 @@ function drawSolid(s) {
   if (s.hid) return;
   const x = Math.round(s.x), y = Math.round(s.y), w = Math.round(s.w);
   if (L.theme === 'slop') return drawSlopSolid(s, x, y, w);
+  if (L.theme === 'listva') return drawListvaSolid(s, x, y, w);
   if (L.theme === 'dk' && s.k !== 'p') {
     if (s.k === 'f') {
       g.fillStyle = pats.panel; g.fillRect(x, y + 8, w, H - y);
@@ -457,6 +459,7 @@ function drawCheck(c) {
 function drawGate() {
   if (L.theme === 'dk') return drawDkGate();
   if (L.theme === 'slop') return drawSlopGate();
+  if (L.theme === 'listva') return drawListvaGate();
   const x = L.gateX, o = Math.round(L.gate * 118);
   R(x - 12, FY - 150, 94, 150, '#141a2c'); R(x - 8, FY - 146, 86, 146, '#3d4a3a'); R(x - 8, FY - 146, 86, 3, '#8fb07f');
   R(x, FY - 122, 70, 122, '#0b0712');

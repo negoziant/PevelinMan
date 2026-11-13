@@ -11,7 +11,7 @@ function hurtPlayer(dir, pit, kind) {
   if (P.hp <= 0) { mode = 'dead'; modeT = 0; P.vy = -420; P.vx = dir * 90; stats.deaths++; stopSong(); P.bub = null; return; }
   P.inv = 1.5; P.atk = 0;
   if (pit) { P.x = P.safeX; P.y = P.safeY; P.vx = P.vy = 0; say(P, pick(['ЯМА?!', 'КТО ТАК ВЕРСТАЕТ', 'НУ ВОТ…']), 1.2); }
-  else { P.hurtT = .34; P.vx = dir * 175; P.vy = -280; P.onGround = false; say(P, pick(['rocket', 'fist', 'wave', 'press'].includes(kind) ? ['АЙ!', 'ЖЕЛЕЗНЫЙ АРГУМЕНТ…', 'Я НЕ НАШ!', 'ОТСТАНЬ, ЖЕЛЕЗКА!'] : kind === 'ghost' ? ['НЕ НАДО СТИХОВ!', 'Я ВАС НЕ ЗВАЛ!', 'ИЗЫДИ!'] : kind === 'zhal' || kind === 'donos' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПИСАЛ!', 'КАКОЙ НАЦИСТ?!'] : kind === 'word' ? ['КАКИЕ ГРАНТЫ?!', 'Я НЕ ПРИЛЕПИН!', 'ЭТО НЕ Я!'] : kind === 'folder' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПОДПИСЫВАЛ', 'ОЙ!'] : ['НЕТ!', 'НА ОБЛОЖКУ НЕ НАДО!', 'УБЕРИТЕ!', 'Я ЕГО НЕ ЗНАЮ!']), .9); }
+  else { P.hurtT = .34; P.vx = dir * 175; P.vy = -280; P.onGround = false; say(P, pick(kind === 'fan' ? ['ПРОСТИТЕ!', 'Я НЕ ХОТЕЛ!', 'ЭТО РЕФЛЕКС!'] : ['rocket', 'fist', 'wave', 'press'].includes(kind) ? ['АЙ!', 'ЖЕЛЕЗНЫЙ АРГУМЕНТ…', 'Я НЕ НАШ!', 'ОТСТАНЬ, ЖЕЛЕЗКА!'] : kind === 'ghost' ? ['НЕ НАДО СТИХОВ!', 'Я ВАС НЕ ЗВАЛ!', 'ИЗЫДИ!'] : kind === 'zhal' || kind === 'donos' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПИСАЛ!', 'КАКОЙ НАЦИСТ?!'] : kind === 'word' ? ['КАКИЕ ГРАНТЫ?!', 'Я НЕ ПРИЛЕПИН!', 'ЭТО НЕ Я!'] : kind === 'folder' ? ['ЗА ЧТО?!', 'Я НИЧЕГО НЕ ПОДПИСЫВАЛ', 'ОЙ!'] : ['НЕТ!', 'НА ОБЛОЖКУ НЕ НАДО!', 'УБЕРИТЕ!', 'Я ЕГО НЕ ЗНАЮ!']), .9); }
 }
 function attackHits() {
   const x0 = P.face > 0 ? P.x - 10 : P.x - 68, x1 = x0 + 78, y0 = P.y - 96, y1 = P.y + 8;
@@ -36,6 +36,7 @@ function attackHits() {
     if (c.x + 14 > x0 && c.x - 14 < x1 && c.y > y0 && c.y - 30 < y1) { P.atkSet.add(c); openCase(c, P.face); sfx.bonk(); }
   }
   if (L.dark) dkAttack(x0, x1, y0, y1);
+  if (L.fans) fanAttack(x0, x1, y0, y1);
   if (boss && L.boss && BK[boss.kind]) BK[boss.kind].melee(x0, x1, y0, y1);
   else if (boss && L.boss && !boss.dead && !P.atkSet.has(boss) && boss.x + 40 > x0 && boss.x - 40 < x1 && boss.y > y0 && boss.y - 120 < y1) { P.atkSet.add(boss); meleeBoss(); }
 }
@@ -57,7 +58,7 @@ function updatePlayer(dt, ctrl) {
   if (ctrl && hit('J')) P.jbuf = .13; else P.jbuf = Math.max(0, P.jbuf - dt);
   if (P.jbuf > 0 && P.coyote > 0) { P.vy = -530; P.jbuf = 0; P.coyote = 0; P.onGround = false; sfx.jump(); burst(P.x, P.y, 5, ['#cfd8e6', '#8fa3c7'], 70, .3); }
   if (ctrl && !down('J') && P.vy < -190 && P.hurtT <= 0) P.vy = -190;
-  if (ctrl && hit('A') && P.atk <= 0 && !(down('D') && P.kefir > 0)) { P.atk = ATK_T; P.atkSet = new Set(); sfx.swing(); }
+  if (ctrl && hit('A') && P.atk <= 0 && !(down('D') && (P.kefir > 0 || P.vodka > 0))) { P.atk = ATK_T; P.atkSet = new Set(); sfx.swing(); }
   if (P.atk > 0) {
     const e = ATK_T - P.atk; P.atk -= dt;
     if (e >= .04 && e < .2) attackHits();
@@ -92,6 +93,7 @@ function drawPlayer() {
   }
   else if (mode === 'bossdeath' && boss && boss.won) { name = 'p_proud'; oy = -Math.abs(Math.sin(gameT * 6)) * 3; }
   else if (mode === 'dead' || P.hurtT > 0) name = 'p_hit';
+  else if (P.signT > 0) { name = 'p_write'; oy = (gameT * 8 | 0) % 2 ? -1 : 0; }
   else if (P.atk > 0) name = (ATK_T - P.atk) < .06 ? 'p_wind' : 'p_smash';
   else if (!P.onGround) name = 'p_jump';
   else if (P.crouch) { if (Math.abs(P.vx) > 20) { name = (P.runT * 7 | 0) % 2 ? 'p_crouch2' : 'p_crouch'; oy = (P.runT * 14 | 0) % 2 ? -1 : 0; } else name = 'p_crouch'; }
@@ -389,21 +391,21 @@ function drawBossHud() {
 function fadeTo(cb) { if (fadeDir === 1) return; fadeDir = 1; fadeCb = cb; }
 // какие уровни открыты, запоминается в браузере
 // OPEN — сколько уровней открыто сразу, без прохождения; passed — докуда игрок дошёл сам
-const OPEN = 3;
+const OPEN = 4;
 let passed = 1, unlocked = OPEN, curLevel = 0;
 try { passed = Math.max(1, +localStorage.getItem('pelevin_unlocked') || 1); } catch (e) { }
 unlocked = Math.max(OPEN, passed);
 function unlockNext() { passed = Math.max(passed, curLevel + 2); unlocked = Math.max(unlocked, passed); try { localStorage.setItem('pelevin_unlocked', String(passed)); } catch (e) { } }
 function newGame() {
   nameI = 0; NAMES.sort(() => Math.random() - .5);
-  stats = { ghosts: 0, copies: 0, relocated: 0, cases: 0, casesTotal: 0, deflected: 0, got: 0, best: 0, hits: 0, deaths: 0, time: 0, left: 0, mirPoke: 0 };
+  stats = { ghosts: 0, copies: 0, relocated: 0, cases: 0, casesTotal: 0, deflected: 0, got: 0, best: 0, hits: 0, deaths: 0, time: 0, left: 0, mirPoke: 0, signed: 0, fanHit: 0 };
   memorial = []; parts = []; gibs = []; floats = []; pickups = []; fxs = []; folders = []; blurbs = []; words = [];
   chain = 0; chainT = 0; pendingCele = false; mir = null; mirSeen = false; mirCard = 0; boss = null; banner = null; letterT = 0; walker = null; walkerT = 10; fallCase = false;
   hitstop = 0; shake = 0; slow = 1; paused = false;
   L = LEVELS[curLevel].build(); stats.casesTotal = L.casesTotal || 0; dkReset(); lite.seen = false; lite.exiled = {};
   mirT = L.mirX ? 999 : rnd(30, 45);
   if (L.pot) pickups.push({ k: 'money', x: L.pot.x, y: L.pot.y, vx: 0, vy: 0, t: 1, rest: true });
-  Object.assign(P, { x: 90, y: FY, vx: 0, vy: 0, face: 1, hp: 5, inv: 0, hurtT: 0, atk: 0, onGround: true, ground: null, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 90, safeY: FY, emoteT: 0 });
+  Object.assign(P, { x: 90, y: FY, vx: 0, vy: 0, face: 1, hp: 5, inv: 0, hurtT: 0, atk: 0, onGround: true, ground: null, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 90, safeY: FY, emoteT: 0, signT: 0, vodka: 0, kefir: 0 });
   cam = 0; look = 0; mode = 'play'; modeT = 0;
 }
 function startLevel(i) { curLevel = i || 0; newGame(); scene = 'play'; sceneT = 0; playSong(L.song || 'level'); banner = { s: 'ЭТАП ' + (curLevel + 1) + ': ' + LEVELS[curLevel].name, sub: LEVELS[curLevel].tag || 'НИ ОДНОГО БЛЁРБА!', t: 2.6 }; }
@@ -421,10 +423,11 @@ function updatePlay(dt) {
   updateFx(dt);
   updateDk(dt);
   if (L.theme === 'slop' && !L.boss && mode === 'play') updateSlop(dt);
+  if (L.theme === 'listva' && !L.boss && mode === 'play') updateListva(dt);
   switch (mode) {
     case 'play':
       updateWorld(dt); if (mode !== 'play') break;
-      updatePlayer(dt, true); updateAgents(dt); updateBlurbs(dt); updateMir(dt); updateWords(dt);
+      updatePlayer(dt, !(P.signT > 0)); updateAgents(dt); updateBlurbs(dt); updateMir(dt); updateWords(dt);
       if (L.boss) updateBoss(dt);
       // заявление, отбитое обратно в Бородина
       if (L.boss && boss && BK[boss.kind]) BK[boss.kind].papers(dt);
@@ -480,6 +483,7 @@ function drawPlay() {
     for (const d of L.deco) if (inView(d.x)) drawCase(d, true);
     if (walker) { g.globalAlpha = .6; const st = (gameT * 14 | 0) % 2; R(walker.x - 6, FY - 6 - (st ? 2 : 0), 3, 6 + (st ? 2 : 0), '#16161d'); R(walker.x + 4, FY - 6 - (st ? 0 : 2), 3, 6 + (st ? 0 : 2), '#16161d'); g.globalAlpha = 1; drawCase({ x: walker.x, y: FY - 6 - st, ci: walker.ci, s: .8, open: false, bump: 0 }, true); }
     if (L.theme === 'dk') drawDkWorld();
+    if (L.theme === 'listva') drawListvaBack();
     for (const s of L.signs) if (inView(s.x + s.w / 2, 200)) drawSign(s);
     for (const c of L.checks) if (inView(c.x)) drawCheck(c);
     if (inView(L.gateX, 140)) drawGate();
@@ -487,6 +491,7 @@ function drawPlay() {
   }
   for (const s of L.solids) if (s.x + s.w > cx - 4 && s.x < cx + W + 4) drawSolid(s);
   if (L.theme === 'slop' && !L.boss) drawSlopFront();
+  if (L.theme === 'listva' && !L.boss) drawListvaFront();
   if (!L.boss) { for (const sp of L.spikes) drawSpikes(sp.x, sp.y, sp.w); for (const z of L.zaps) if (inView(z.x)) drawZap(z); }
   for (const c of L.cases) if (inView(c.x)) drawCase(c);
   for (const p of pickups) {
@@ -563,7 +568,7 @@ function drawBossIntro() {
   if (t > 2.9) T('ОСТАЛОСЬ: ВЫ', 362, 264, { size: 8, color: '#ffe36b', align: 'left' });
   if (t > 3.3) T('ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ: НА ПРОВЕРКЕ', 362, 280, { size: 7, color: '#ff8a94', align: 'left' });
 }
-function rankOf() { const k = stats.got; return k === 0 ? 'ЧИСТ ПЕРЕД ОБЛОЖКОЙ' : k <= 3 ? 'ЛЁГКОЕ РУКОПОЖАТИЕ' : k <= 8 ? 'ПОД ПОДОЗРЕНИЕМ' : 'СОАВТОР ВСЕХ ИНОАГЕНТОВ'; }
+function rankOf() { if (stats.fanHit) return 'ОБИДЕЛ ЧИТАТЕЛЯ'; const k = stats.got; return k === 0 ? 'ЧИСТ ПЕРЕД ОБЛОЖКОЙ' : k <= 3 ? 'ЛЁГКОЕ РУКОПОЖАТИЕ' : k <= 8 ? 'ПОД ПОДОЗРЕНИЕМ' : 'СОАВТОР ВСЕХ ИНОАГЕНТОВ'; }
 let credits = null;
 function drawEnding() {
   const t = sceneT; R(0, 0, W, H, '#07060d');
@@ -574,7 +579,8 @@ function drawEnding() {
     const mm = (stats.time / 60 | 0) + ':' + String(stats.time % 60 | 0).padStart(2, '0');
     const rows = [['ТИРАЖ', stats.copies], ['ЧЕМОДАНОВ', stats.cases + '/' + stats.casesTotal], ['БЛЁРБОВ ОТБИТО', stats.deflected], ['БЛЁРБОВ НА ОБЛОЖКЕ', stats.got], [lv.relocLabel || 'РЕЛОЦИРОВАНО', stats.relocated + (stats.left ? ' (' + stats.left + ' ОСТАЛИСЬ)' : '')], ['ЛУЧШЕЕ КОМБО', 'x' + stats.best], ['ВРЕМЯ', mm]];
     if (lv.bossKind === 'deg') rows.splice(5, 0, ['ПРИЗРАКОВ ИЗГНАНО', stats.ghosts]);
-    const rh = rows.length > 7 ? 20 : 23;
+    if (lv.extraRows) rows.splice(5, 0, ...lv.extraRows());
+    const rh = rows.length > 8 ? 18 : rows.length > 7 ? 20 : 23;
     rows.forEach((r, i) => { if (t > 4.4 + i * .45) { T(r[0], W / 2 - 14, 140 + i * rh, { size: 10, color: '#8f9ad0', align: 'right' }); T(String(r[1]), W / 2 + 14, 140 + i * rh, { size: 10, color: '#ffe36b', align: 'left' }); } });
     if (t > 8) T('РАНГ: ' + rankOf(), W / 2, 316, { size: 13, color: '#3ddc6a', stroke: '#16161d', sw: 5 });
     spr((t / .22 | 0) % 2 ? 'p_dance2' : 'p_dance1', 90, 430 - Math.abs(Math.sin(t * 14.3)) * 5, (t / .88 | 0) % 2 === 1);

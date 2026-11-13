@@ -384,6 +384,10 @@ function drawDoll(c, U, cfg, p) {
   if (cfg.long) Rr(cx - 5.2 + tl, ty + 13, 10.4, 5, cfg.coat);
   if (cfg.skirt) Rr(cx - 5.6 + tl, ty + 12, 11.2, 6, cfg.skirt);
   if (cfg.belt) Rr(cx - 5 + tl, ty + 11, 10, 1.2, cfg.belt);
+  if (cfg.hem) Rr(cx - 5.6 + tl, ty + 17.2, 11.2, .9, cfg.hem);
+  // форма горничной: фартук с лямками и белый воротничок
+  if (cfg.apron) { Rr(cx - 3.2 + tl, ty + 5.5, 6.4, 7, cfg.apron); Rr(cx - 4.4 + tl, ty + 12, 8.8, 5.2, cfg.apron); Rr(cx - 3.4 + tl, ty, 1, 6, cfg.apron); Rr(cx + 2.4 + tl, ty, 1, 6, cfg.apron); }
+  if (cfg.collar) Rr(cx - 3 + tl, ty - .3, 6.4, 1.6, cfg.collar);
   // голова
   Rr(hx0, hy, 8, 10, cfg.skin);
   if (cfg.wide) Rr(hx0 - .8, hy + 4, 9, 6.6, cfg.skin);
@@ -402,6 +406,8 @@ function drawDoll(c, U, cfg, p) {
   else if (cfg.style === 'wavy') { Rr(hx0 - 1.2, hy - 2, 9.8, 3.8, hc); Rr(hx0 + .6, hy - 2.9, 2.6, 1.2, hc); Rr(hx0 + 4.2, hy - 2.7, 2.8, 1.2, hc); Rr(hx0 - 1.4, hy, 3.6, 6.4, hc); Rr(hx0 + 6.2, hy + 1, 2.2, 1.6, hc); }
   else if (cfg.style === 'side') { Rr(hx0 - .8, hy - 1.5, 9.2, 2.9, hc); Rr(hx0 - .8, hy, 2.8, 5, hc); Rr(hx0 + 4.6, hy - 2.1, 3.8, 1.3, hc); Rr(hx0 + 2.6, hy - 1.5, .6, 1, dk(hc, 1.6)); }
   else if (cfg.style === 'curly') { for (let i = 0; i < 5; i++) Rr(hx0 - 1 + i * 2, hy - 2 + (i % 2), 2.6, 2.6, hc); Rr(hx0 - 1.2, hy, 3.4, 6, hc); }
+  if (cfg.cap) { Rr(hx0 - 1.2, hy - 2.6, 10.2, 3.4, cfg.cap); Rr(hx0 + 5, hy + .4, 4.8, 1, OUTC); Rr(hx0 + 3, hy - 1.8, 2, 1.2, '#e9b616'); }
+  if (cfg.frill) { Rr(hx0 - .6, hy - 2.2, 8.8, 1.4, cfg.frill); for (let i = 0; i < 4; i++) Rr(hx0 + i * 2.2, hy - 3.2, 1.3, 1.2, cfg.frill); }
   if (cfg.beret) { Rr(hx0 - 1.6, hy - 2.4, 10.2, 2.6, cfg.beret); Rr(hx0 + 3.5, hy - 3.3, 1.2, 1.2, cfg.beret); }
   if (cfg.stubble) { Rr(hx0 + .3, hy + 6.4, 8.2, 3.8, cfg.stubble); Rr(hx0 + 2.2, hy + 10, 5.2, .8, cfg.stubble); }
   if (cfg.goatee) { Rr(hx0 + 4.4, hy + 6.4, 3.6, .8, cfg.goatee); Rr(hx0 + 3.8, hy + 8.7, 4.4, 1.9, cfg.goatee); Rr(hx0 + 4.4, hy + 10.4, 3.2, 1, cfg.goatee); }
@@ -441,6 +447,10 @@ function drawDoll(c, U, cfg, p) {
     else if (k === 'mega') { Rr(x - .5, y - 2, 3, 3, '#c9ccd6'); Rr(x + 2.3, y - 3, 2.2, 5, '#e8eaf0'); Rr(x + 4.3, y - 4.2, 1.6, 7.4, '#fff'); Rr(x + 2.3, y - 1, 2.2, .9, '#d81b2a'); hand(e); }
     else if (k === 'folder') { Rr(x - 2, y - 6, 6.5, 7.5, '#3a6ab0'); Rr(x - 2, y - 6, 6.5, 1, '#6fa0e0'); Rr(x - .5, y - 3.5, 3.5, 1.5, '#f4f0e0'); hand(e); }
     else if (k === 'suitcase') { Rr(x - 1, y - .4, 2.4, 1.6, OUTC); Rr(x - 3.6, y + 1, 7.6, 6.4, cfg.case || '#7a4fa0'); Rr(x - 3.6, y + 1, 7.6, .9, dk(cfg.case || '#7a4fa0', 1.35)); Rr(x - .5, y + 3, 1.4, 1.2, '#f3c93a'); }
+    else if (k === 'duster') { Rr(x - .4, y - 7, .9, 7, '#8a5a2a'); Rr(x - 2.2, y - 11.4, 4.6, 4.8, '#ff9ad0'); Rr(x - 1.4, y - 12.2, 3, 1, '#ffc8e8'); Rr(x - 2.8, y - 9.6, 1, 2, '#ff9ad0'); Rr(x + 2.2, y - 9.6, 1, 2, '#ff9ad0'); hand(e); }
+    else if (k === 'mop') { const fy = hipY + 12.2; Rr(x - .4, y - 2, .9, fy - y, '#a07040'); Rr(x - 3.2, fy - 2.2, 7.4, 2.2, '#cfd0d8'); for (let i = 0; i < 4; i++) Rr(x - 3 + i * 2, fy - .5, .8, .8, '#9a9aa8'); hand(e); }
+    else if (k === 'plate') { Rr(x - 3.2, y - 2.6, 6.8, 1.6, '#f4f6fa'); Rr(x - 2.2, y - 1, 4.6, .8, '#c8d0e0'); Rr(x - 1, y - 2.4, 2, .5, '#4a8ad0'); hand(e); }
+    else if (k === 'bottle') { Rr(x - .9, y - 6.4, 2.2, 5.4, '#dff0ff'); Rr(x - .4, y - 8, 1.2, 1.8, '#dff0ff'); Rr(x - .9, y - 4.8, 2.2, 1.6, '#f4f4f8'); Rr(x - .5, y - 4.4, 1.4, .6, '#d81b2a'); hand(e); }
     else if (k === 'pen') { Rr(x + .6, y - 4, .9, 4, '#2a4aa0'); hand(e); }
   }
 }
