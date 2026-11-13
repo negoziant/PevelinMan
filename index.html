@@ -4164,7 +4164,7 @@ function updateFeed(dt) {
     else { d.t += dt; if (d.t > 2.6) { d.st = 'on'; s.y = d.y; } }
   }
   // правки в Википедии: платформа то есть, то её откатили
-  for (const s of l.edits) { const ph = (gameT + s.ed.ph) % 3; s.ed.on = ph < 1.9; s.ed.warn = ph > 1.5 && ph < 1.9; s.y = s.ed.on ? s.ed.y : -9999; }
+  for (const s of l.edits) { const ph = (gameT + s.ed.ph) % 3.4; s.ed.on = ph < 2.6; s.ed.warn = ph > 1.8 && ph < 2.6; s.y = s.ed.on ? s.ed.y : -9999; }
   // гуси
   for (const q of l.geese) {
     q.t += dt; if (q.bub) { q.bub.t -= dt; if (q.bub.t <= 0) q.bub = null; } q.ad = Math.max(0, q.ad - dt);
@@ -4190,7 +4190,9 @@ function updateFeed(dt) {
   if (l.mid && P.x > l.mid.x - 200 && l.mid.cd <= 0) { l.mid.cd = 9; l.mid.bub = { s: pick(['А Я НА МИНЕРАЛКЕ', 'НА АЙРАНЕ НАДО!', 'ДРУЗЬЯ, ДАВАЙТЕ ЖИТЬ ДРУЖНО']), t: 2 }; }
   if (l.mid && l.mid.bub) { l.mid.bub.t -= dt; if (l.mid.bub.t <= 0) l.mid.bub = null; }
   // [источник не указан]
-  if (P.x > l.wiki[0] && P.x < l.wiki[1]) { l.srcT -= dt; if (l.srcT <= 0) { l.srcT = rnd(1.6, 2.4); const low = Math.random() < .5; words.push({ x: cam + W + 40, y: P.y - (low ? 14 : 70), vx: -230, s: pick(['[ИСТОЧНИК НЕ УКАЗАН]', '[НЕТ АИ]', '[ПРОВЕРИТЬ]', '[ЧЬЁ МНЕНИЕ?]']), t: 0, size: 9, col: '#5eb5f7', kind: 'src', txt: 'СТАТЬЯ ПОПРАВЛЕНА' }); sfx.typewriter(); } }
+  // над ямами и перед ними «источники» не летят — иначе сбивают в яму
+  const nearPit = l.pits.some(p => P.x > p[0] - 320 && P.x < p[1] + 60);
+  if (P.x > l.wiki[0] && P.x < l.wiki[1] && !nearPit) { l.srcT -= dt; if (l.srcT <= 0) { l.srcT = rnd(1.6, 2.4); const low = Math.random() < .5; words.push({ x: cam + W + 40, y: P.y - (low ? 14 : 70), vx: -230, s: pick(['[ИСТОЧНИК НЕ УКАЗАН]', '[НЕТ АИ]', '[ПРОВЕРИТЬ]', '[ЧЬЁ МНЕНИЕ?]']), t: 0, size: 9, col: '#5eb5f7', kind: 'src', txt: 'СТАТЬЯ ПОПРАВЛЕНА' }); sfx.typewriter(); } }
   // звонки «начальника»
   for (let i = l.scams.length - 1; i >= 0; i--) {
     const q = l.scams[i]; q.t += dt;
@@ -4439,7 +4441,8 @@ function buildLevel6() {
   l.wiki = [5050, 6700];
   l.quips.push({ x: 5060, s: 'ОТКРЫЛ СТАТЬЮ О СЕБЕ ВО ВРАЖЕСКОЙ ВИКИПЕДИИ' });
   cs(5200, FY, 'matryoshka', 2);
-  edit(5370, 330, 80, 0); edit(5490, 290, 80, 1); edit(5610, 320, 80, 2);
+  // правки по краям пропадают по очереди, средняя статья стабильная
+  edit(5356, 340, 110, 0); pl(5480, 340, 110); edit(5604, 340, 110, 1.7);
   l.scams.push({ x: 5900, y: 260, st: 'idle', t: 0 }, { x: 6350, y: 240, st: 'idle', t: 0 });
   cm(6050, FY, 'sit', 'ПРАВЛЮ СТАТЬЮ О ВАС. ДЛЯ ТОЧНОСТИ', 0);
   bl(6150, 346, 70, 40); l.tails.push({ x: 6185, y: 346 }); l.pot = { x: 6185, y: 346 };
