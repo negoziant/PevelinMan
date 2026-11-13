@@ -41,7 +41,7 @@ const KEYMAP = {
   ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R',
   ArrowUp: 'J', KeyW: 'J', Space: 'J', KeyZ: 'J',
   KeyX: 'A', KeyJ: 'A', KeyK: 'A', KeyF: 'A', ControlLeft: 'A', ControlRight: 'A',
-  ArrowDown: 'D', KeyS: 'D', Enter: 'S', NumpadEnter: 'S', KeyM: 'M', KeyP: 'P', Escape: 'P'
+  ArrowDown: 'D', KeyS: 'D', Enter: 'S', NumpadEnter: 'S', KeyM: 'M', KeyP: 'P', Escape: 'P', KeyC: 'C'
 };
 function press(k) { if (!held[k]) pressed[k] = true; held[k] = true; if (k !== 'M' && k !== 'P') anyPress = true; audioInit(); }
 function release(k) { held[k] = false; }
@@ -208,8 +208,14 @@ function stopSong() {
   if (song && AC) { const o = song; o.g.gain.setTargetAtTime(0, AC.currentTime, 0.03); setTimeout(() => { try { o.g.disconnect(); } catch (e) { } }, 400); }
   song = null;
 }
+// узкие прямоугольные волны, как у звукового чипа NES: p12 — 12,5%, p25 — 25%
+let PW = null;
+function pwave(type) {
+  if (!PW) { PW = {}; for (const [k, d] of [['p12', .125], ['p25', .25]]) { const n = 48, re = new Float32Array(n), im = new Float32Array(n); for (let i = 1; i < n; i++) { re[i] = Math.sin(2 * Math.PI * i * d) / (i * Math.PI); im[i] = (1 - Math.cos(2 * Math.PI * i * d)) / (i * Math.PI); } PW[k] = AC.createPeriodicWave(re, im); } }
+  return PW[type];
+}
 function mnote(type, f, t, dur, v, dest, dec) {
-  const o = AC.createOscillator(), gn = AC.createGain(); o.type = type; o.frequency.value = f;
+  const o = AC.createOscillator(), gn = AC.createGain(); if (type[0] === 'p') o.setPeriodicWave(pwave(type)); else o.type = type; o.frequency.value = f;
   gn.gain.setValueAtTime(0.0008, t); gn.gain.linearRampToValueAtTime(v, t + 0.008);
   if (dec) gn.gain.exponentialRampToValueAtTime(0.0008, t + dur * 1.6);
   else { gn.gain.setValueAtTime(v, t + Math.max(0.012, dur - 0.025)); gn.gain.linearRampToValueAtTime(0.0008, t + dur); }

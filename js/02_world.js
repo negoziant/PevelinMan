@@ -226,6 +226,7 @@ function updateFx(dt) {
     if (p.k !== 'copy' && p.t > .35 && Math.abs(p.x - P.x) < 26 && p.y > P.y - 84 && p.y - 20 < P.y && mode === 'play') {
       pickups.splice(i, 1);
       if (p.k === 'heart') { P.hp = Math.min(P.maxhp, P.hp + 1); sfx.heal(); floater('ХОРОШАЯ РЕЦЕНЗИЯ +1', P.x, P.y - 90, { color: '#ff5b6b', size: 8, t: 1.4 }); }
+      else if (p.k === 'kefir') { P.kefir = Math.min(3, (P.kefir || 0) + 1); sfx.heal(); floater('КЕФИР ×' + P.kefir, P.x, P.y - 96, { color: '#fff', t: 1.2, size: 9 }); }
       else if (p.k === 'money') { P.hp = P.maxhp; sfx.heal(); floater('ГОНОРАР. НЕ ГРАНТ!', P.x, P.y - 96, { color: '#7fe08a', t: 2.2, size: 9 }); }
     }
   }

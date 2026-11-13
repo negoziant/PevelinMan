@@ -57,7 +57,7 @@ function updatePlayer(dt, ctrl) {
   if (ctrl && hit('J')) P.jbuf = .13; else P.jbuf = Math.max(0, P.jbuf - dt);
   if (P.jbuf > 0 && P.coyote > 0) { P.vy = -530; P.jbuf = 0; P.coyote = 0; P.onGround = false; sfx.jump(); burst(P.x, P.y, 5, ['#cfd8e6', '#8fa3c7'], 70, .3); }
   if (ctrl && !down('J') && P.vy < -190 && P.hurtT <= 0) P.vy = -190;
-  if (ctrl && hit('A') && P.atk <= 0) { P.atk = ATK_T; P.atkSet = new Set(); sfx.swing(); }
+  if (ctrl && hit('A') && P.atk <= 0 && !(down('D') && P.kefir > 0)) { P.atk = ATK_T; P.atkSet = new Set(); sfx.swing(); }
   if (P.atk > 0) {
     const e = ATK_T - P.atk; P.atk -= dt;
     if (e >= .04 && e < .2) attackHits();
@@ -692,6 +692,6 @@ window.__dbg = {
   warp(x, y) { P.x = x; P.y = y === undefined ? FY : y; P.vx = P.vy = 0; cam = clamp(x - 360, 0, L.w - W); },
   god(v) { P.maxhp = v ? 99 : 5; P.hp = P.maxhp; },
   start(i) { startLevel(i || 0); }, deg() { curLevel = 1; startDeg(); }, yak() { curLevel = 2; startYak(); }, yakIntro() { curLevel = 2; startBossIntro(); }, lite: () => lite, ghosts: () => ghosts, darkAt(t) { lite.t = t; }, mir() { startMir(); }, cele(k) { cele.n = 4; startCelebrate(); if (k) cele.kind = k; }, idle(k) { P.idleT = 4; P.idleAnim = k; P.idleA = 0; }, boss() { startBoss(); }, bosshp(n) { boss.hp = n; }, ending() { startEnding(); }, intro() { startBossIntro(); },
-  bossObj: () => boss, L: () => L, P, F, stats: () => stats, atlas: () => atlas,
+  bossObj: () => boss, pickups: () => pickups, L: () => L, P, F, stats: () => stats, atlas: () => atlas,
   blurb() { const a = L.agents.filter(r => !r.dead).sort((p, q) => Math.abs(p.x - P.x) - Math.abs(q.x - P.x))[0]; if (a) throwBlurb(a); }
 };

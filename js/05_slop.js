@@ -145,16 +145,18 @@ const YAK_ROCKET = ['«ШПАНА»', '«ГОПОТА»', '«ГРАФОМАН»'
 const YAK_SCR = ['НЕЙРОСЛОП', 'ПЕЛЕВИН: ШПАНА', 'ГОПОТЫ: ВСЯ', 'ПОСТОВ О НЁМ: 412', 'КЕФИР: НЕ ПРОПУСКАТЬ', 'ТЮРЕМ: МАЛО', 'ПАТРИОТИЗМ: 98%'];
 const YAK_SEQ = [null, ['walk', 'rockets', 'walk', 'punch', 'heat'], ['walk', 'rockets', 'stomp', 'punch', 'spawn', 'heat'], ['stomp', 'rockets', 'punch', 'spawn', 'stomp', 'rockets', 'heat']];
 function startYak() {
-  L = buildBossLevel(); L.theme = 'slop'; L.bg = bgFactory; L.song = 'robot'; L.name = 'ЦЕХ №1';
+  L = buildBossLevel(); L.theme = 'slop'; L.bg = bgFactory; L.song = 'robot'; L.name = 'ЦЕХ №1'; L.dark = true;
+  lite.on = false; lite.a = 0; lite.manual = true; lite.card = 0; kefs = []; kefCard = 0;
   cam = 0; look = 0;
   parts = []; gibs = []; pickups = []; folders = []; floats = []; fxs = []; blurbs = []; words = []; mir = null;
-  Object.assign(P, { x: 90, y: FYB, vx: 0, vy: 0, hp: P.maxhp, face: 1, inv: 0, hurtT: 0, atk: 0, onGround: true, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 90, safeY: FYB });
-  boss = { kind: 'yak', title: 'ЖЕЛЕЗНЫЙ БОРИС', x: 640, y: FYB, hp: 16, max: 16, phase: 1, state: 'greet', t: 0, n: 0, seq: 0, line: 0, inv: 0, fl: 0, bub: null, dead: false, started: false,
+  Object.assign(P, { x: 90, y: FYB, vx: 0, vy: 0, hp: P.maxhp, face: 1, inv: 0, hurtT: 0, atk: 0, onGround: true, idleT: 0, bub: null, clean: 0, crouch: false, h: 76, idleAnim: '', safeX: 90, safeY: FYB, kefir: 0 });
+  boss = { kind: 'yak', title: 'ЖЕЛЕЗНЫЙ БОРИС', x: 640, y: FYB, hp: 16, max: 16, phase: 1, state: 'dim', shown: false, kef: 0, kefT: 1.2, t: 0, n: 0, seq: 0, line: 0, inv: 0, fl: 0, bub: null, dead: false, started: false,
     kneel: 0, lift: 0, stepT: 0, walking: false, fist: null, hatch: 0, heat: false, waves: [], scr: 'НЕЙРОСЛОП', scrT: 0, target: 640, ej: null, left: false,
     prize: ['ЗАВОД ОСТАНОВЛЕН', '(слоп больше не льётся)'] };
   mode = 'play'; modeT = 0; scene = 'play'; chain = 0; pendingCele = false; stopSong();
-  banner = { s: 'ЦЕХ №1', sub: 'ЖЕЛЕЗНЫЙ БОРИС', t: 2 };
+  banner = { s: 'ЦЕХ №1', sub: 'кто выключил свет?', t: 2 };
 }
+let kefs = [], kefCard = 0;
 // геометрия: x — центр между ногами; при перегреве корпус наклоняется вперёд и опускается
 function yakGeo(b) {
   const drop = Math.round(b.kneel * 70), F = FYB - Math.round(b.lift);
@@ -169,14 +171,14 @@ function yakNext() {
   if (b.state === 'heat') { say(b, pick(YAK_HEAT), 2); }
   else if (!b.bub && Math.random() < .55) say(b, pick(YAK_SHOUT), 1.5);
 }
-function yakBegin() { const b = boss; if (b.started) return; b.started = true; playSong('robot'); banner = null; yakNext(); }
+function yakBegin() { const b = boss; if (b.started) return; b.started = true; banner = null; yakNext(); kefCard = 3.4; }
 function yakOpen() { const b = boss; return b && !b.dead && b.state === 'heat' && b.kneel > .8; }
 function yakMelee(x0, x1, y0, y1) {
-  const b = boss; if (!b || b.dead || P.atkSet.has(b)) return;
+  const b = boss; if (!b || b.dead || !b.shown || P.atkSet.has(b)) return;
   const d = yakGeo(b).dome;
   if (x1 > d[0] && x0 < d[2] && y1 > d[1] && y0 < d[3]) {
     P.atkSet.add(b);
-    if (yakOpen() || !b.started) damageYak('book');
+    if (yakOpen()) damageYak('book');
     else { sfx.stamp(); floater('КЛАНГ!', P.x + P.face * 50, P.y - 100, { color: '#cfd8e6', size: 10, t: .6 }); }
     return;
   }
@@ -200,16 +202,40 @@ function damageYak(by) {
   if (!b.started) yakBegin();
   b.hp--; b.inv = .35; b.fl = .3; hitstop = .07; shake = Math.max(shake, 9); sfx.bonk(); sfx.zap();
   const d = yakGeo(b).dome; burst((d[0] + d[2]) / 2, d[1] + 30, 14, ['#9fdcff', '#fff', '#ffe36b'], 220, .5);
-  floater(by === 'rocket' ? pick(['ВОЗВРАТ ЛОЗУНГА', 'САМ СЕБЕ ПРОМПТ', 'ОБРАТНАЯ СВЯЗЬ']) : pick(['ПО КУПОЛУ!', 'ОТКАЗ!', 'НЕ НАШ!']), (d[0] + d[2]) / 2, d[1] - 20, { color: '#ffe36b', size: 10, t: .9, vy: -40 });
+  floater(by === 'kefir' ? pick(['КЕФИРОМ ПО КУПОЛУ!', 'КИСЛОМОЛОЧНАЯ МЕСТЬ', 'ОНО ТОГО СТОИЛО?']) : by === 'rocket' ? pick(['ВОЗВРАТ ЛОЗУНГА', 'САМ СЕБЕ ПРОМПТ', 'ОБРАТНАЯ СВЯЗЬ']) : pick(['ПО КУПОЛУ!', 'ОТКАЗ!', 'НЕ НАШ!']), (d[0] + d[2]) / 2, d[1] - 20, { color: '#ffe36b', size: 10, t: .9, vy: -40 });
   if (b.hp <= 0) { yakDeath(); return; }
   const np = b.hp <= 5 ? 3 : b.hp <= 10 ? 2 : 1;
   if (np !== b.phase) { b.phase = np; b.seq = 0; if (np === 3) pickups.push({ k: 'heart', x: clamp(P.x + rnd(-80, 80), 60, 380), y: 40, vx: 0, vy: 0, t: 0 }); }
   if (!b.bub || Math.random() < .5) say(b, pick(YAK_HURT), 1.3);
-  if (!P.bub && Math.random() < .45) say(P, pick(['Я ТОТ САМЫЙ.', 'НАЦБОЛЫ ПЕРЕДАЮТ ПРИВЕТ', 'КЕФИРУ НЕ ХОЧЕШЬ?', 'КЕФИР ПОЛЕЗЕН ДЛЯ КОГНИТИВНЫХ', 'ОНО ТОГО СТОИЛО, БОРИС?', 'ЧИТАЙ ДО КОНЦА, БОРИС', 'КТО ТУТ ШПАНА, БОРИС?']), 1.2);
+  if (by !== 'kefir' && !P.bub && Math.random() < .45) say(P, pick(['Я ТОТ САМЫЙ.', 'НАЦБОЛЫ ПЕРЕДАЮТ ПРИВЕТ', 'КЕФИРУ НЕ ХОЧЕШЬ?', 'КЕФИР ПОЛЕЗЕН ДЛЯ КОГНИТИВНЫХ', 'ОНО ТОГО СТОИЛО, БОРИС?', 'ЧИТАЙ ДО КОНЦА, БОРИС', 'КТО ТУТ ШПАНА, БОРИС?']), 1.2);
+}
+function yakThrowKefir() {
+  const b = boss, d = yakGeo(b).dome, cx = (d[0] + d[2]) / 2, cy = (d[1] + d[3]) / 2, x = P.x + 10, y = P.y - 70;
+  const T = clamp((cx - x) / 430, .45, .95), g = 900;
+  kefs.push({ x, y, vx: (cx - x) / T, vy: (cy - y - .5 * g * T * T) / T, rot: 0 });
+  P.kefir--; P.face = 1; sfx.swing(); say(P, pick(['ЛОВИ КЕФИР!', 'ДЛЯ КОГНИТИВНЫХ!', 'ОНО ТОГО СТОИЛО?', 'КИСЛОМОЛОЧНОЕ!']), 1);
+}
+function kefSplash(x, y, n) { burst(x, y, n, ['#ffffff', '#f0f4f8', '#dfe8ef'], 220, .7, 500); sfx.paper(); tn('sine', 300, 120, .12, .2); }
+function updateKefs(dt) {
+  const b = boss;
+  for (let i = kefs.length - 1; i >= 0; i--) {
+    const k = kefs[i]; k.vy += 900 * dt; k.x += k.vx * dt; k.y += k.vy * dt; k.rot += dt * 14;
+    if (!b.dead && b.shown) {
+      const gx = yakGeo(b), d = gx.dome;
+      if (k.x > d[0] - 20 && k.x < d[2] + 20 && k.y > d[1] - 20 && k.y < d[3] + 16) {
+        kefs.splice(i, 1); kefSplash(k.x, k.y, 30); b.kef = 3.2;
+        if (b.inv > 0) b.inv = 0;
+        damageYak('kefir'); say(b, pick(['ТОЛЬКО НЕ КЕФИР!!!', 'ОПЯТЬ КЕФИР?!', 'Я НИЧЕГО НЕ ВИЖУ!', 'ЭТО НАЦБОЛЬСКИЙ КЕФИР!']), 1.4);
+        continue;
+      }
+      if (k.x > gx.ux - 84 && k.y > gx.tY + 20) { kefs.splice(i, 1); kefSplash(k.x, k.y, 14); floater('МИМО КУПОЛА', k.x, k.y - 20, { color: '#fff', size: 8, t: .8 }); continue; }
+    }
+    if (k.y > FYB) { kefs.splice(i, 1); kefSplash(k.x, FYB - 2, 12); }
+  }
 }
 function yakRocket() {
   const b = boss, gx = yakGeo(b), x = gx.ux - 104, y = gx.tY - 18, tx = P.x, ty = P.y - 52;
-  const dx = tx - x, dy = ty - y, dd = Math.hypot(dx, dy) || 1, sp = [230, 255, 280][b.phase - 1];
+  const dx = tx - x + (b.kef > 0 ? rnd(-140, 140) : 0), dy = ty - y + (b.kef > 0 ? rnd(-60, 30) : 0), dd = Math.hypot(dx, dy) || 1, sp = [230, 255, 280][b.phase - 1];
   blurbs.push({ x, y, vx: dx / dd * sp, vy: dy / dd * sp, g: 0, q: pick(YAK_ROCKET), from: b, back: false, t: 0, rot: 0, paper: true, spr: 'slopb', kind: 'rocket', hitTxt: 'НЕЙРОЛОЗУНГ В ЛОБ' });
   sfx.whoosh(); burst(x, y, 6, ['#ff9a3a', '#ffe36b'], 90, .3, 0);
 }
@@ -223,8 +249,25 @@ function updateYak(dt) {
   if (b.state !== 'spawn') b.hatch = Math.max(0, b.hatch - dt * 3);
   b.walking = false; b.heat = false;
   switch (b.state) {
+    case 'dim':
+      // свет медленно гаснет
+      lite.a = Math.min(.94, b.t / 2.6 * .94);
+      if (b.t > .3 && b.n === 0) { b.n = 1; tn('sawtooth', 55, 40, 2.6, .12); tn('sawtooth', 58, 41, 2.6, .08); }
+      if ((b.t * 3 | 0) !== ((b.t - dt) * 3 | 0) && b.t < 2.4) sfx.flick();
+      if (b.t > 2.9) { b.state = 'drop'; b.t = 0; b.shown = true; b.lift = 460; sfx.whoosh(); }
+      break;
+    case 'drop':
+      b.lift = Math.max(0, 460 - b.t * b.t * 1800);
+      if (b.lift === 0 && b.n < 2) { b.n = 2; shake = 18; sfx.boom(); sfx.thud(); burst(b.x, FYB - 4, 30, ['#cfd8e6', '#8a92a8'], 260, .6); playSong('robot'); }
+      if (b.t > 1.1) { b.state = 'greet'; b.t = 0; }
+      break;
     case 'greet':
-      if (b.t > .25 && !b.bub) { if (b.line >= YAK_GREET.length) { yakBegin(); break; } say(b, YAK_GREET[b.line++], 1.5); b.t = 0; sfx.blip2(); }
+      if (b.t > .25 && !b.bub) { if (b.line >= YAK_GREET.length) { b.state = 'lightsup'; b.t = 0; sfx.on(); break; } say(b, YAK_GREET[b.line++], 1.5); b.t = 0; sfx.blip2(); }
+      break;
+    case 'lightsup':
+      lite.a = Math.max(0, .94 - b.t * 2.2);
+      if (b.t < .05) flash = Math.max(flash, .35);
+      if (b.t > .5) { lite.a = 0; yakBegin(); }
       break;
     case 'walk': {
       const d = sign(b.target - b.x), was = Math.sin(b.stepT * 6);
@@ -281,6 +324,14 @@ function updateYak(dt) {
       break;
     }
   }
+  // кефир: падает сверху, подобрать, кинуть вниз + удар (или C)
+  b.kef = Math.max(0, b.kef - dt); kefCard = Math.max(0, kefCard - dt);
+  if (b.started) {
+    b.kefT -= dt;
+    if (b.kefT <= 0) { b.kefT = 7; if ((P.kefir || 0) < 3 && !pickups.some(q => q.k === 'kefir')) { const x = rnd(60, Math.max(80, yakGeo(b).ux - 160)); pickups.push({ k: 'kefir', x, y: -20, vx: 0, vy: 0, t: 0 }); floater('КЕФИР!', x, 70, { color: '#fff', size: 9, t: 1.2 }); } }
+    if (mode === 'play' && P.kefir > 0 && P.hurtT <= 0 && (hit('C') || (down('D') && hit('A')))) yakThrowKefir();
+  }
+  updateKefs(dt);
   // ударные волны по полу: перепрыгнуть
   for (let i = b.waves.length - 1; i >= 0; i--) {
     const w = b.waves[i]; w.x += w.d * 330 * dt;
@@ -289,12 +340,12 @@ function updateYak(dt) {
     if (w.x < -30 || w.x > W + 30) b.waves.splice(i, 1);
   }
   // робот непроходим
-  const front = yakGeo(b).ux - 112 - (b.fist && b.state === 'punch' ? 0 : 0);
-  if (P.x > front) { P.x = front; if (P.vx > 0) P.vx = 0; }
+  const front = yakGeo(b).ux - 112;
+  if (b.shown && P.x > front) { P.x = front; if (P.vx > 0) P.vx = 0; }
 }
 function yakDeath() {
   const b = boss; mode = 'bossdeath'; modeT = 0; b.state = 'dying'; b.bub = null; stopSong();
-  blurbs = []; b.waves = []; b.fist = null; P.atk = 0; b.heat = false;
+  blurbs = []; b.waves = []; b.fist = null; P.atk = 0; b.heat = false; kefs = []; lite.a = 0; lite.manual = false;
   for (const a of L.agents) if (!a.dead && a.ko <= 0) hitAgent(a, 1);
   sfx.boom(); b.left = false; b.won = 0;
 }
@@ -360,6 +411,7 @@ function drawRobot(b, face) {
   R(dx - 48, dY + 66, 96, 10, OUTC); R(dx - 46, dY + 68, 92, 6, ST);
   R(dx - 2, dY - 26, 4, 24, OUTC); R(dx - 5, dY - 33, 10, 10, (gameT * 3 | 0) % 2 ? '#ff3040' : '#601018');
   if (b.fl > .15) { g.globalAlpha = .5; R(dx - 44, dY, 88, 72, '#fff'); g.globalAlpha = 1; }
+  if (b.kef > 0) { g.globalAlpha = Math.min(1, b.kef); R(dx - 40, dY + 4, 60, 22, '#f4f8fb'); for (let i = 0; i < 6; i++) R(dx - 38 + i * 10, dY + 24, 6, 8 + ((i * 7) % 5) * 6 + (3.2 - b.kef) * 6, '#eef3f7'); g.globalAlpha = 1; }
   g.restore();
   return gx;
 }
@@ -367,6 +419,12 @@ function drawYak() {
   const b = boss;
   for (const w of b.waves) { R(w.x - 12, FYB - 16, 24, 16, OUTC); R(w.x - 10, FYB - 14, 20, 14, '#cfd8e6'); R(w.x - 6, FYB - 20, 12, 6, '#ffe36b'); }
   if (b.fist) { const f = b.fist; R(f.x - 24, f.y - 18, 48, 36, OUTC); R(f.x - 22, f.y - 16, 44, 32, '#c8d0e0'); for (let i = 0; i < 3; i++) R(f.x - 22, f.y - 10 + i * 9, 10, 2, '#5a6278'); if (f.st === 'out') { R(f.x + 24, f.y - 8, 18, 16, '#ff9a3a'); R(f.x + 24, f.y - 4, 30, 8, '#ffe36b'); } }
+  for (const k of kefs) { g.save(); g.translate(Math.round(k.x), Math.round(k.y)); g.rotate(k.rot); g.drawImage(atlas, F.kefir[0], F.kefir[1], F.kefir[2], F.kefir[3], -F.kefir[2] / 2, -F.kefir[3] / 2, F.kefir[2], F.kefir[3]); g.restore(); }
+  if (!b.shown) return;
+  if (lite.a > .05) {
+    // прожектор сверху на робота
+    g.globalAlpha = .16 * lite.a; g.fillStyle = '#fff6c8'; g.beginPath(); g.moveTo(b.x - 30, 0); g.lineTo(b.x + 30, 0); g.lineTo(b.x + 150, FYB); g.lineTo(b.x - 150, FYB); g.fill(); g.globalAlpha = 1;
+  }
   if (!b.dead) {
     const face = b.state === 'dying' || b.fl > 0 ? 'hurt' : b.bub ? 'shout' : 'idle';
     const gx = drawRobot(b, face);
@@ -387,7 +445,10 @@ function drawYak() {
   }
 }
 function drawYakHud() {
-  const b = boss; if (!b.started || b.dead) return;
+  const b = boss;
+  if (b.started && !b.dead) { for (let i = 0; i < (P.kefir || 0); i++) spr('kefir', 222 + i * 16, 36, false); if (P.kefir) T('КЕФИР', 222 + P.kefir * 16 + 4, 26, { size: 7, align: 'left', color: '#fff', stroke: OUTC }); }
+  if (kefCard > 0) OV.push(c => { c.globalAlpha = Math.min(1, kefCard * 2, (3.4 - kefCard) * 4); c.fillStyle = OUTC; c.fillRect(W / 2 - 190, 52, 380, 50); c.fillStyle = '#2a3a4a'; c.fillRect(W / 2 - 186, 56, 372, 42); c.font = '12px PS2P,monospace'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff'; c.fillText('КИДАЙ КЕФИР В КУПОЛ', W / 2, 70); c.font = '7px PS2P,monospace'; c.fillStyle = '#bff7ee'; c.fillText(TOUCH ? 'подбери бутылку, потом ВНИЗ + КНИГА' : 'подбери бутылку, потом C (или ВНИЗ + X)', W / 2, 88); c.globalAlpha = 1; });
+  if (!b.started || b.dead) return;
   T('ЖЕЛЕЗНЫЙ БОРИС ЯКЕМЕНКО', W / 2, 16, { size: 9, color: '#ff8a94', stroke: OUTC });
   OV.push(c => { c.fillStyle = OUTC; c.fillRect(W / 2 - 152, 26, 304, 12); const sw = 300 / b.max; for (let i = 0; i < b.max; i++) { c.fillStyle = i < b.hp ? (b.phase === 3 ? '#ff5b6b' : b.phase === 2 ? '#ffb35b' : '#cfd8e6') : '#2a3350'; c.fillRect(W / 2 - 150 + i * sw, 28, sw - 2, 8); } });
 }
@@ -427,7 +488,7 @@ function drawYakIntro() {
   }
   if (t > 9.8) T('работает на нейрослопе. бей в купол', W / 2, 104, { size: 8, color: '#ffe36b', stroke: OUTC });
 }
-BK.yak = { start: startYak, update: updateYak, death: updateYakDeath, draw: drawYak, hud: drawYakHud, melee: yakMelee, papers: yakPapers, intro: drawYakIntro, introTick: yakIntroTick, introLen: YI.len };
+BK.yak = { start: startYak, update: updateYak, death: updateYakDeath, hud: drawYakHud, melee: yakMelee, papers: yakPapers, intro: drawYakIntro, introTick: yakIntroTick, introLen: YI.len };
 
 // ---------- звук ----------
 SONGS.slop = {
@@ -438,17 +499,22 @@ SONGS.slop = {
 };
 
 // тема Железного Бориса: быстро, минор, бас ходит хроматически восьмыми, сверху быстрые арпеджио
-SONGS.robot = {
-  bpm: 112, loop: true, tr: [
-    { w: 'square', v: .07, s: seq([
-      'G5:6 F5:2 G5:2 A#5:2 G5:2 D5:2', 'C#5:6 D5:2 F5:4 D5:4', 'G5:6 F5:2 G5:2 A#5:2 C6:2 D6:2', 'C#6:4 C6:4 A#5:2 G5:2 F#5:2 G5:2',
-      'G#5:4 G5:4 D#5:4 C5:4', 'F5:4 F#5:4 G5:8', 'G#5:2 G5:2 G#5:2 A#5:2 B5:2 A#5:2 B5:2 C6:2', 'D6:4 C6:2 B5:2 C6:8'].join(' ')) },
-    { w: 'square', v: .03, s: seq(['C5 D#5 G5 D#5', 'B4 D5 F5 D5', 'C5 D#5 G5 D#5', 'G4 B4 D5 B4', 'G#4 C5 D#5 C5', 'F4 G#4 C5 G#4', 'G#4 B4 D5 B4', 'C5 D#5 G5 D#5']
-      .map(c => (c.split(' ').map(n => n + ':1').join(' ') + ' ').repeat(4)).join(' ')) },
-    { w: 'triangle', v: .26, s: seq(['C2 C3 C2 C3 D#2 D#3 C2 C3', 'B1 B2 B1 B2 C#2 C#3 D2 D3', 'C2 C3 C2 C3 D#2 D#3 F2 F3', 'G1 G2 G1 G2 F#1 F#2 G1 G2',
-      'G#1 G#2 G#1 G#2 G1 G2 G1 G2', 'F1 F2 F1 F2 F#1 F#2 G1 G2', 'G#1 G#2 G#1 G#2 A#1 A#2 B1 B2', 'C2 C3 C2 C3 C2 C3 B1 B2'].join(' ').split(' ').map(n => n + ':2').join(' ')) }
-  ], dr: 'k.hhs.hkk.hhs.hh'
-};
+SONGS.robot = (() => {
+  const lead = ['C5:2 C5:1 D#5:1 G5:2 C6:2 A#5:2 G5:2 F5:2 D#5:2', 'D5:3 D#5:1 F5:2 D5:2 A#4:4 B4:4', 'C5:2 C5:1 D#5:1 G5:2 C6:2 D6:2 D#6:2 D6:2 C6:2', 'B5:4 G5:2 D5:2 G5:2 A5:2 B5:4',
+    'G#5:3 G5:1 F5:2 D#5:2 F5:3 G5:1 G#5:4', 'G5:3 F5:1 D#5:2 D5:2 D#5:2 F5:2 G5:4', 'G#5:2 A#5:2 C6:2 G#5:2 A#5:2 C6:2 D6:2 A#5:2', 'C6:1 B5:1 C6:1 D6:1 D#6:4 D6:2 C6:2 B5:4'].join(' ');
+  // эхо: та же мелодия на шестнадцатую позже и тише — приём из NES-игр
+  const echo = seq('-:1 ' + lead); echo[echo.length - 1][1] -= 1;
+  return {
+    bpm: 112, loop: true, tr: [
+      { w: 'p25', v: .1, s: seq(lead) },
+      { w: 'p12', v: .035, s: echo },
+      { w: 'p12', v: .03, s: seq(['C5 D#5 G5 D#5', 'A#4 D5 F5 D5', 'C5 D#5 G5 D#5', 'G4 B4 D5 B4', 'G#4 C5 D#5 C5', 'G4 A#4 D#5 A#4', 'G#4 C5 D#5 C5', 'G4 B4 D5 F5']
+        .map(c => (c.split(' ').map(n => n + ':1').join(' ') + ' ').repeat(4)).join(' ')) },
+      { w: 'triangle', v: .28, s: seq(['C2 C3 C2 C3 D#2 D#3 C2 C3', 'B1 B2 B1 B2 C#2 C#3 D2 D3', 'C2 C3 C2 C3 D#2 D#3 F2 F3', 'G1 G2 G1 G2 F#1 F#2 G1 G2',
+        'G#1 G#2 G#1 G#2 G1 G2 G1 G2', 'F1 F2 F1 F2 F#1 F#2 G1 G2', 'G#1 G#2 G#1 G#2 A#1 A#2 B1 B2', 'C2 C3 C2 C3 C2 C3 B1 B2'].join(' ').split(' ').map(n => n + ':2').join(' ')) }
+    ], dr: 'k.hhs.hkk.hhs.hh'
+  };
+})();
 
 // ---------- графика ----------
 const YAK_LOOK = { skin: '#eab894', hair: '#9a9aa2', style: 'bald', beard: '#b4b0ac', mus: '#5a5048', coat: '#1e1e24', shirt: '#1a2238', pants: '#22222a', shoes: '#111116', brow: true, wide: true };
@@ -490,6 +556,10 @@ function slopSprites() {
   const [rc, rx] = mkCanvas(18, 18);
   rx.fillStyle = OUTC; rx.fillRect(1, 1, 16, 16); rx.fillStyle = '#ff5bd0'; rx.fillRect(2, 2, 14, 14); rx.fillStyle = '#39ff8a'; rx.fillRect(4, 4, 4, 4); rx.fillRect(10, 10, 4, 4); rx.fillStyle = '#ffe36b'; rx.fillRect(10, 4, 4, 4); rx.fillStyle = '#fff'; rx.fillRect(3, 3, 2, 2);
   out.push({ name: 'slopb', c: rc, w: 18, h: 18, ax: 9, ay: 9 });
+  const [kc, kx] = mkCanvas(12, 22);
+  kx.fillStyle = OUTC; kx.fillRect(3, 0, 6, 4); kx.fillRect(1, 3, 10, 19); kx.fillStyle = '#3a8ad8'; kx.fillRect(4, 1, 4, 2);
+  kx.fillStyle = '#f8fbff'; kx.fillRect(2, 4, 8, 17); kx.fillStyle = '#3aa86a'; kx.fillRect(2, 10, 8, 6); kx.fillStyle = '#fff'; kx.fillRect(4, 12, 4, 2); kx.fillStyle = '#dfe8ef'; kx.fillRect(8, 5, 2, 15);
+  out.push({ name: 'kefir', c: kc, w: 12, h: 22, ax: 6, ay: 22 });
   return out;
 }
 // фон уровня: офис, захваченный заводом. Склеивается сам с собой

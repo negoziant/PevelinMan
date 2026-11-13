@@ -10,7 +10,7 @@ const lite = { t: 0, on: false, a: 0, warn: false, fl: false, flT: 0, n: 0, card
 let ghosts = [], envs = [], darkC = null, bgDK = null, bgStage = null;
 const isDark = () => !!(L && L.dark && lite.on);
 function dkReset() {
-  lite.t = 0; lite.on = false; lite.a = 0; lite.warn = false; lite.fl = false; ghosts = []; envs = [];
+  lite.t = 0; lite.on = false; lite.a = 0; lite.manual = false; lite.warn = false; lite.fl = false; ghosts = []; envs = [];
   if (L && L.portraits) for (const p of L.portraits) p.empty = 0;
 }
 
@@ -73,6 +73,7 @@ function updateDk(dt) {
     else if (!on && lite.on) { lite.on = false; lightsOn(); }
   }
   if (mode === 'play') updateGhosts(dt);
+  if (lite.manual) return;
   lite.flT -= dt;
   if (lite.flT <= 0) { lite.flT = .07; const was = lite.fl; lite.fl = lite.warn && Math.random() < .4; if (lite.fl && !was) sfx.flick(); }
   const tgt = lite.on ? 1 : lite.fl ? .75 : 0;
@@ -201,6 +202,7 @@ function drawDkTop(cx) {
   drawDark(cx);
   for (const q of ghosts) drawGhost(q);
   if (L.boss && boss && boss.kind === 'deg') drawDeg();
+  if (L.boss && boss && boss.kind === 'yak') drawYak();
 }
 function drawDkHud() {
   if (!L.dark || lite.card <= 0) return;
