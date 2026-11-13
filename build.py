@@ -4,7 +4,7 @@ import base64, glob, os
 def datauri(path):
     return 'data:font/woff;base64,' + base64.b64encode(open(path, 'rb').read()).decode()
 
-files = ['js/01_core.js', 'js/02_world.js', 'js/03_game.js', 'js/04_dk.js', 'js/05_slop.js', 'js/06_listva.js', 'js/07_nii.js'] + sorted(f for f in glob.glob('js/levels/*.js') if not os.path.basename(f).startswith('_'))
+files = ['js/01_core.js', 'js/02_world.js', 'js/03_game.js', 'js/04_dk.js', 'js/05_slop.js', 'js/06_listva.js', 'js/07_nii.js', 'js/08_feed.js'] + sorted(f for f in glob.glob('js/levels/*.js') if not os.path.basename(f).startswith('_'))
 js = '\n'.join(open(f).read() for f in files)
 js = "'use strict';\n(function(){\n" + js.replace("'use strict';\n", '', 1) + '\n})();'
 html = open('index.tpl.html').read()

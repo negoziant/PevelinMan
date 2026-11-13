@@ -139,7 +139,7 @@ function makeVoidBg() {
   for (let i = 0; i < W; i += 40) { x.fillStyle = '#120a1c'; x.fillRect(i, FYB + 2, 2, H); }
   return c;
 }
-function buildNiiArt() { bgNii = makeNiiBg(); bgVoid = makeVoidBg(); }
+function buildNiiArt() { bgNii = makeNiiBg(); bgVoid = makeVoidBg(); buildFeedArt(); }
 THEME.nii = { solid: (s, x, y, w) => drawNiiSolid(s, x, y, w), gate: () => drawNiiGate(), update: dt => { updateCalls(dt); updateTik(dt); }, back: () => drawTik(), front: () => drawCalls() };
 
 // ---------- внешности ----------
@@ -188,7 +188,7 @@ function niiSprites() {
   sx.fillStyle = OUTC; sx.fillRect(5, 6, 6, 10); sx.fillRect(0, 2, 16, 7); sx.fillRect(3, 0, 10, 3);
   sx.fillStyle = '#f4f0e0'; sx.fillRect(6, 8, 4, 7); sx.fillStyle = '#d8d8a8'; sx.fillRect(1, 3, 14, 5); sx.fillRect(4, 1, 8, 2); sx.fillStyle = '#e8e8c0'; sx.fillRect(4, 2, 4, 1);
   out.push({ name: 'shroom', c: sc, w: 16, h: 16, ax: 8, ay: 16 });
-  return out;
+  return out.concat(feedSprites());
 }
 
 // ---------- уровень ----------

@@ -8,6 +8,8 @@ const DEATH = {
 function hurtPlayer(dir, pit, kind) {
   if (mode !== 'play' || (P.inv > 0 && !pit)) return;
   P.hp--; stats.hits++; chain = 0; sfx.hurt(); shake = Math.max(shake, 7); flash = Math.max(flash, .25); P.lastHit = kind || 'blurb';
+  // босс может не дать умереть (один раз): BK.<kind>.save() возвращает true
+  if (P.hp <= 0 && L.boss && boss && BK[boss.kind] && BK[boss.kind].save && BK[boss.kind].save()) return;
   if (P.hp <= 0) { mode = 'dead'; modeT = 0; P.vy = -420; P.vx = dir * 90; stats.deaths++; stopSong(); P.bub = null; return; }
   P.inv = 1.5; P.atk = 0;
   if (pit) { P.x = P.safeX; P.y = P.safeY; P.vx = P.vy = 0; say(P, pick(['ЯМА?!', 'КТО ТАК ВЕРСТАЕТ', 'НУ ВОТ…']), 1.2); }
@@ -37,6 +39,7 @@ function attackHits() {
   }
   if (L.dark) dkAttack(x0, x1, y0, y1);
   if (L.fans) fanAttack(x0, x1, y0, y1);
+  if (THEME[L.theme] && THEME[L.theme].attack && !L.boss) THEME[L.theme].attack(x0, x1, y0, y1);
   if (boss && L.boss && BK[boss.kind]) BK[boss.kind].melee(x0, x1, y0, y1);
   else if (boss && L.boss && !boss.dead && !P.atkSet.has(boss) && boss.x + 40 > x0 && boss.x - 40 < x1 && boss.y > y0 && boss.y - 120 < y1) { P.atkSet.add(boss); meleeBoss(); }
 }
@@ -203,9 +206,9 @@ function updateWords(dt) {
   for (let i = words.length - 1; i >= 0; i--) {
     const w = words[i]; w.x += w.vx * dt; w.t += dt;
     const hw = w.s.length * 5.5 + 4;
-    if (mode === 'play' && Math.abs(w.x - P.x) < hw + 6 && w.y + 6 > P.y - P.h && w.y - 6 < P.y && P.inv <= 0) {
-      floater('«' + pick(['ПРИЛЕПИНСКИЙ ГРАНТ', 'СИДИТ НА ГРАНТАХ', 'ГРАНТОЕД']) + '» — пост', P.x, P.y - 110, { color: '#ff8a94', size: 8, t: 2 });
-      hurtPlayer(sign(w.vx), false, 'word'); words.splice(i, 1); continue;
+    if (mode === 'play' && !w.back && Math.abs(w.x - P.x) < hw + 6 && w.y + 6 > P.y - P.h && w.y - 6 < P.y && P.inv <= 0) {
+      floater(w.txt || '«' + pick(['ПРИЛЕПИНСКИЙ ГРАНТ', 'СИДИТ НА ГРАНТАХ', 'ГРАНТОЕД']) + '» — пост', P.x, P.y - 110, { color: '#ff8a94', size: 8, t: 2 });
+      hurtPlayer(sign(w.vx), false, w.kind || 'word'); words.splice(i, 1); continue;
     }
     if (w.t > 6 || (L.boss ? (w.x < -100 || w.x > W + 100) : !inView(w.x, 200))) words.splice(i, 1);
   }
@@ -220,7 +223,7 @@ function drawMir() {
   if (m.shoutA > 0) for (let i = 0; i < 3; i++) { const r = 10 + i * 8 + (.3 - m.shoutA) * 60; g.strokeStyle = '#ffffff' + (i ? '88' : 'cc'); g.lineWidth = 2; g.beginPath(); g.arc(m.x + m.face * 26, m.y - 62, r, m.face > 0 ? -.6 : Math.PI - .6, m.face > 0 ? .6 : Math.PI + .6); g.stroke(); }
 }
 function drawWords() {
-  for (const w of words) { const wob = Math.sin(w.t * 20) * 1.5; T(w.s, w.x - camR, w.y + wob, { size: 12, color: '#ff5b6b', stroke: '#16161d', sw: 4 }); }
+  for (const w of words) { const wob = Math.sin(w.t * 20) * 1.5; T(w.s, w.x - camR, w.y + wob, { size: w.size || 12, color: w.col || '#ff5b6b', stroke: '#16161d', sw: 4 }); }
 }
 
 // ---------- босс: Виталий Бородин ----------
@@ -391,14 +394,14 @@ function drawBossHud() {
 function fadeTo(cb) { if (fadeDir === 1) return; fadeDir = 1; fadeCb = cb; }
 // какие уровни открыты, запоминается в браузере
 // OPEN — сколько уровней открыто сразу, без прохождения; passed — докуда игрок дошёл сам
-const OPEN = 5;
+const OPEN = 6;
 let passed = 1, unlocked = OPEN, curLevel = 0;
 try { passed = Math.max(1, +localStorage.getItem('pelevin_unlocked') || 1); } catch (e) { }
 unlocked = Math.max(OPEN, passed);
 function unlockNext() { passed = Math.max(passed, curLevel + 2); unlocked = Math.max(unlocked, passed); try { localStorage.setItem('pelevin_unlocked', String(passed)); } catch (e) { } }
 function newGame() {
   nameI = 0; NAMES.sort(() => Math.random() - .5);
-  stats = { ghosts: 0, copies: 0, relocated: 0, cases: 0, casesTotal: 0, deflected: 0, got: 0, best: 0, hits: 0, deaths: 0, time: 0, left: 0, mirPoke: 0, signed: 0, fanHit: 0 };
+  stats = { ghosts: 0, copies: 0, relocated: 0, cases: 0, casesTotal: 0, deflected: 0, got: 0, best: 0, hits: 0, deaths: 0, time: 0, left: 0, mirPoke: 0, signed: 0, fanHit: 0, tails: 0 };
   memorial = []; parts = []; gibs = []; floats = []; pickups = []; fxs = []; folders = []; blurbs = []; words = [];
   chain = 0; chainT = 0; pendingCele = false; mir = null; mirSeen = false; mirCard = 0; boss = null; banner = null; letterT = 0; walker = null; walkerT = 10; fallCase = false;
   hitstop = 0; shake = 0; slow = 1; paused = false;
